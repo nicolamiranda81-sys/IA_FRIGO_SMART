@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <!-- Questa riga dice al cellulare di adattare la pagina allo schermo -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frigo Smart</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 20px; }
+        h1 { margin-top: 0; }
+        /* Il video si adatterà automaticamente alla grandezza dello schermo */
+        video.webcam { max-width: 100%; border-radius: 12px; border: 3px solid #007BFF; box-shadow: 0px 4px 15px rgba(0, 123, 255, 0.4); }
+        .btn { display: inline-block; padding: 15px 20px; margin: 10px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-blue { background-color: #007BFF; color: white; }
+        .btn-blue:active { background-color: #0056b3; }
+        .btn-red { background-color: #DC3545; color: white; }
+        .btn-red:active { background-color: #a71d2a; }
+        .container { max-width: 800px; margin: auto; }
+        
+        /* Stili per la chat */
+        .chat-container { background-color: #1E1E1E; border-radius: 10px; margin-top: 20px; border: 1px solid #333; overflow: hidden; }
+        .chat-box { padding: 15px; height: 200px; overflow-y: auto; text-align: left; }
+        .chat-box p { margin: 5px 0; border-bottom: 1px solid #2a2a2a; padding-bottom: 5px; }
+        .chat-input-area { display: flex; padding: 10px; background-color: #121212; border-top: 1px solid #333; }
+        .chat-input { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; font-size: 16px; outline: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧊 Frigo Smart</h1>
+        
+        <!-- Questo tag VIDEO carica la fotocamera del telefono (o del PC) -->
+        <video id="videoElement" class="webcam" autoplay playsinline></video>
+        <canvas id="canvasElement" style="display:none;"></canvas>
+        
+        <br>
+        
+        <!-- Bottoni di interazione -->
+        <button class="btn btn-blue" onclick="eseguiScansione()">📷 Scansiona</button>
+        <button class="btn btn-red" onclick="alert('Presto collegheremo il microfono!')">🎤 Parla</button>
+
+        <!-- Chatbot Container -->
+        <div class="chat-container">
+            <!-- Intestazione Chat con bottone Volume -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background-color: #2a2a2a; border-bottom: 1px solid #333;">
+                <span style="font-weight: bold;">💬 Chat Assistente</span>
+                <button id="btnVolume" class="btn btn-blue" style="padding: 5px 10px; margin: 0; font-size: 14px;" onclick="toggleVolume()">🔊 Volume ON</button>
+            </div>
+            <div class="chat-box" id="chatBox">
+                <p><strong>🤖 Assistente:</strong> Ciao! Server Web avviato con successo. Scrivimi qualcosa!</p>
+            </div>
+            <div class="chat-input-area">
+                <!-- Casella di testo -->
+                <input type="text" id="chatInput" class="chat-input" placeholder="Scrivi un messaggio..." onkeypress="gestisciInvio(event)">
+                <!-- Bottone invio -->
+                <button class="btn btn-blue" style="margin: 0 0 0 10px; padding: 10px 15px;" onclick="inviaMessaggio()">Invia</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT PER LA CHAT -->
+    <script>
+        const chatBox = document.getElementById("chatBox");
+        const chatInput = document.getElementById("chatInput");
+        const videoElement = document.getElementById("videoElement");
+        const canvasElement = document.getElementById("canvasElement");
+        let volumeOn = true; // Stato iniziale del volume
+
+        // Richiede l'accesso alla fotocamera del telefono appena si carica la pagina
+        async function avviaFotocamera() {
+            try {
+                // 'facingMode: environment' richiede la fotocamera posteriore del cellulare
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                videoElement.srcObject = stream;
+            } catch (err) {
+                chatBox.innerHTML += `<p style="color: #DC3545;"><strong>❌ Errore fotocamera:</strong> Impossibile accedere. Se sei su cellulare, leggi la nota sulla sicurezza!</p>`;
+            }
+        }
+        window.onload = avviaFotocamera;
+
+        function toggleVolume() {
+            volumeOn = !volumeOn;
+            const btn = document.getElementById("btnVolume");
+            if (volumeOn) {
+                btn.innerHTML = "🔊 Volume ON";
+                btn.className = "btn btn-blue";
+            } else {
+                btn.innerHTML = "🔇 Volume OFF";
+                btn.className = "btn btn-red";
+            }
+        }
+
+        function gestisciInvio(event) {
+            if (event.key === "Enter") {
+                inviaMessaggio();
+            }
+        }
+
+        async function inviaMessaggio() {
+            const testo = chatInput.value.trim();
+            if (!testo) return; // Se vuoto, non fare nulla
+
+            // 1. Aggiungi il messaggio dell'utente alla chat
+            chatBox.innerHTML += `<p><strong>👤 Tu:</strong> ${testo}</p>`;
+            chatInput.value = ""; // Svuota la casella
+            chatBox.scrollTop = chatBox.scrollHeight; // Scendi in basso
+
+            // 2. Invia la richiesta al server Python
+            const risposta = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: testo, volumeOn: volumeOn })
+            });
+            
+            // 3. Ricevi la risposta e mostrala
+            const dati = await risposta.json();
+            chatBox.innerHTML += `<p style="color: #4da6ff;"><strong>🤖 Assistente:</strong> ${dati.reply}</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight; // Scendi in basso
+        }
+
+        async function eseguiScansione() {
+            // Inserisce un messaggio di feedback visivo
+            chatBox.innerHTML += `<p><strong>🤖 Assistente:</strong> Avvio scansione in corso... ⏳</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 1. Scatta una "foto" dal video del cellulare
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            const ctx = canvasElement.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            
+            // 2. Converti in testo (Base64) per poterlo inviare
+            const imageData = canvasElement.toDataURL('image/jpeg');
+
+            try {
+                const risposta = await fetch('/scansiona', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData, volumeOn: volumeOn })
+                });
+                const dati = await risposta.json();
+                
+                chatBox.innerHTML += `<p style="color: #4da6ff;"><strong>🤖 Assistente:</strong> ${dati.message}</p>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (errore) {
+                chatBox.innerHTML += `<p style="color: #DC3545;"><strong>❌ Errore:</strong> Impossibile completare la scansione.</p>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
