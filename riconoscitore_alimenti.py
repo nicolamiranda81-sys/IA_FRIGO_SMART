@@ -21,7 +21,12 @@ class RiconoscitoreAlimenti:
             self.modello = tf.keras.models.load_model(self.percorso_modello, compile=False)
             with open(self.percorso_labels, "r", encoding="utf-8") as file_labels:
                 self.nomi_classi = file_labels.readlines()
-            print("Modello IA caricato con successo!")
+            
+            print("Esecuzione 'warm-up' del modello (potrebbe richiedere qualche secondo)...")
+            immagine_dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
+            self.modello.predict(immagine_dummy, verbose=0)
+            
+            print("Modello IA caricato e pronto con successo!")
         except Exception as e:
             print("\n" + "="*60)
             print("🚨 ATTENZIONE: MANCA UNA LIBRERIA FONDAMENTALE 🚨")
