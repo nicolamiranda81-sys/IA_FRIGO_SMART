@@ -68,7 +68,14 @@ class Database:
         conn, cursor = self._get_conn()          
         cursor.execute("""DELETE ...""", (nome,)) 
         conn.commit()                            
-        conn.close()                            
+        conn.close()      
+
+    def get_quantita_alimento(self, nome):
+        conn, cursor = self._get_conn()
+        cursor.execute("SELECT nome, COUNT(*) FROM alimenti WHERE LOWER(nome) LIKE LOWER(?) GROUP BY nome", (f"%{nome[:5]}%",))
+        risultato = cursor.fetchone()
+        conn.close()
+        return risultato                      
 
 # --- TEST DI FUNZIONAMENTO ---
 if __name__ == "__main__":
