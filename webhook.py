@@ -78,4 +78,4 @@ def webhook():
     return jsonify({"fulfillmentText": risposta})
 
 if __name__ == '__main__':
-    app.run(port=6000, debug=False)
+    app.run(port=6000, debug=False)git 
