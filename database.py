@@ -5,7 +5,7 @@ from Alimento import Alimento
 class Database:
     def __init__(self, nome_db="frigo_smart.db"):
         # Connessione al database (se il file non esiste, verrà creato in automatico)
-        self.conn = sqlite3.connect(nome_db)
+        self.conn = sqlite3.connect(nome_db, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.crea_tabella()
 
