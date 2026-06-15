@@ -1,0 +1,7 @@
+# Cache di Python
+__pycache__/
+*.pyc
+
+# Database locale e file multimediali di test
+*.jpeg
+*.jpg
