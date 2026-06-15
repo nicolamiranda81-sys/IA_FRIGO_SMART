@@ -35,6 +35,32 @@ class Database:
         self.conn.commit()
         print(f"✅ DB: Salvato '{alimento.nome}' con successo!")
 
+    def get_tutti_alimenti(self):
+        self.cursor.execute("SELECT nome, COUNT(*) FROM alimenti GROUP BY nome")
+        return self.cursor.fetchall()
+
+    def get_scadenze_vicine(self):
+        oggi = datetime.now().strftime("%Y-%m-%d")
+        self.cursor.execute("""
+            SELECT nome, data_scadenza FROM alimenti 
+            WHERE data_scadenza IS NOT NULL 
+            ORDER BY data_scadenza ASC LIMIT 5
+        """)
+        return self.cursor.fetchall()
+
+    def get_alimenti_per_ricette(self):
+        self.cursor.execute("SELECT DISTINCT nome FROM alimenti")
+        return [row[0] for row in self.cursor.fetchall()]
+
+    def rimuovi_alimento(self, nome):
+        self.cursor.execute("""
+            DELETE FROM alimenti WHERE id = (
+                SELECT id FROM alimenti WHERE nome = ? 
+                ORDER BY data_scadenza ASC LIMIT 1
+            )
+        """, (nome,))
+        self.conn.commit()
+
 # --- TEST DI FUNZIONAMENTO ---
 if __name__ == "__main__":
     db = Database()
