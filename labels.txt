@@ -1,2 +1,5 @@
 0 Banana
-1 Nothing
+1 Mela
+2 Uova
+3 Pomodoro
+4 Niente

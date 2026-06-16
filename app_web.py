@@ -3,11 +3,20 @@ import threading
 import base64
 import numpy as np
 import time
+import os
+import uuid
 from flask import Flask, render_template, Response, request, jsonify
 from riconoscitore_vocale import parla
 from rilevatore_Oggetti import trova_ritagli
 from riconoscitore_alimenti import RiconoscitoreAlimenti
 from database import Database
+
+# --- CONFIGURAZIONE DIALOGFLOW ---
+# Imposta il percorso del file segreto scaricato da Google Cloud
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/dd/Scrivania/PROGETTO_ACADEMY/credenziali.json"
+DIALOGFLOW_PROJECT_ID = "INSERISCI_QUI_IL_TUO_PROJECT_ID"  # Es: "frigo-smart-abcde"
+DIALOGFLOW_LANGUAGE_CODE = "it"
+SESSION_ID = str(uuid.uuid4()) # Crea una sessione univoca per la memoria dell'utente
 
 app = Flask(__name__)
 
@@ -29,6 +38,22 @@ def index():
     """Carica la pagina HTML principale"""
     return render_template('index.html')
 
+def invia_a_dialogflow(testo):
+    """Invia il testo dell'utente a Dialogflow e recupera la risposta dell'Agente"""
+    try:
+        from google.cloud import dialogflow
+        session_client = dialogflow.SessionsClient()
+        session = session_client.session_path(DIALOGFLOW_PROJECT_ID, SESSION_ID)
+        
+        text_input = dialogflow.TextInput(text=testo, language_code=DIALOGFLOW_LANGUAGE_CODE)
+        query_input = dialogflow.QueryInput(text=text_input)
+        
+        response = session_client.detect_intent(request={"session": session, "query_input": query_input})
+        return response.query_result.fulfillment_text
+    except Exception as e:
+        print(f"Errore Dialogflow: {e}")
+        return "Errore di connessione a Dialogflow. Hai configurato le credenziali e il Project ID?"
+
 @app.route('/chat', methods=['POST'])
 def chat():
     """Riceve i messaggi dalla pagina web e restituisce una risposta"""
@@ -36,8 +61,8 @@ def chat():
     messaggio_utente = dati.get('message', '')
     volume_attivo = dati.get('volumeOn', True)
     
-    # PER ORA È UN PLACEHOLDER: Qui in futuro collegheremo l'IA vera!
-    risposta = f"Hai detto: '{messaggio_utente}'. Presto potrò capirti per davvero!"
+    # 💬 Interroghiamo Dialogflow con il messaggio dell'utente!
+    risposta = invia_a_dialogflow(messaggio_utente)
     
     # Se il volume è attivo nell'interfaccia, facciamo parlare l'assistente in background
     if volume_attivo:
