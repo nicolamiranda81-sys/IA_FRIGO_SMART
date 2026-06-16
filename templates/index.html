@@ -37,7 +37,7 @@
         
         <!-- Bottoni di interazione -->
         <button class="btn btn-blue" onclick="eseguiScansione()">📷 Scansiona</button>
-        <button class="btn btn-red" onclick="alert('Presto collegheremo il microfono!')">🎤 Parla</button>
+        <button class="btn btn-red" onclick="avviaAscolto()">🎤 Parla</button>
 
         <!-- Chatbot Container -->
         <div class="chat-container">
@@ -109,13 +109,16 @@
             const risposta = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: testo, volumeOn: volumeOn })
+                body: JSON.stringify({ message: testo, volumeOn: false }) // false = muta il PC!
             });
             
             // 3. Ricevi la risposta e mostrala
             const dati = await risposta.json();
             chatBox.innerHTML += `<p style="color: #4da6ff;"><strong>🤖 Assistente:</strong> ${dati.reply}</p>`;
             chatBox.scrollTop = chatBox.scrollHeight; // Scendi in basso
+            
+            // 4. Riproduci l'audio dal telefono
+            parlaDalTelefono(dati.reply);
         }
 
         async function eseguiScansione() {
@@ -136,15 +139,69 @@
                 const risposta = await fetch('/scansiona', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData, volumeOn: volumeOn })
+                    body: JSON.stringify({ image: imageData, volumeOn: false }) // false = muta il PC!
                 });
                 const dati = await risposta.json();
                 
                 chatBox.innerHTML += `<p style="color: #4da6ff;"><strong>🤖 Assistente:</strong> ${dati.message}</p>`;
                 chatBox.scrollTop = chatBox.scrollHeight;
+                
+                // Riproduci l'audio dal telefono
+                parlaDalTelefono(dati.message);
             } catch (errore) {
                 chatBox.innerHTML += `<p style="color: #DC3545;"><strong>❌ Errore:</strong> Impossibile completare la scansione.</p>`;
                 chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        // ==========================================
+        // FUNZIONI PER MICROFONO E AUDIO (TELEFONO)
+        // ==========================================
+
+        // Configurazione Riconoscimento Vocale (STT)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'it-IT';
+            recognition.interimResults = false;
+
+            recognition.onresult = function(event) {
+                const testoAscoltato = event.results[0][0].transcript;
+                chatInput.value = testoAscoltato; // Inserisce il testo nella barra
+                inviaMessaggio(); // Lo invia in automatico al server!
+            };
+
+            // Se c'è un errore, lo stampiamo nella chat
+            recognition.onerror = function(event) {
+                chatBox.innerHTML += `<p style="color: #DC3545;"><strong>❌ Errore microfono:</strong> ${event.error} (potrebbe essere un blocco di sicurezza del browser)</p>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            };
+
+            recognition.onend = function() {
+                console.log("Microfono disattivato.");
+            };
+        }
+
+        function avviaAscolto() {
+            if (recognition) {
+                chatBox.innerHTML += `<p style="color: #ff9900;"><strong>🎤 In ascolto... Parla ora!</strong></p>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+                recognition.start();
+            } else {
+                alert("Il tuo browser non supporta il microfono. Usa Chrome o Safari.");
+            }
+        }
+
+        // Configurazione Sintesi Vocale (TTS - Audio dal telefono)
+        function parlaDalTelefono(testo) {
+            if (!volumeOn) return; // Rispetta il bottone del volume nell'interfaccia
+            if ('speechSynthesis' in window) {
+                // Ferma un eventuale audio precedente per non accavallare le voci
+                window.speechSynthesis.cancel();
+                const sintesi = new SpeechSynthesisUtterance(testo);
+                sintesi.lang = 'it-IT';
+                window.speechSynthesis.speak(sintesi);
             }
         }
     </script>
