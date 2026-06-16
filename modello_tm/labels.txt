@@ -1,7 +1,7 @@
-3 Banana
+0 Banana
 1 Burro
 2 Carota
-0 Cetriolo
+3 Cetriolo
 4 Latte
 5 Lattuga
 6 Mela verde
@@ -10,5 +10,5 @@
 9 Uova
 10 Yogurt
 11 Cipolla bianca
-13 Mela rossa
-12 Melanzana
+12 Mela rossa
+13 Melanzana
