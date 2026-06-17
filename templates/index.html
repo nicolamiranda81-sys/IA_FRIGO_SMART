@@ -1,209 +1,440 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <!-- Questa riga dice al cellulare di adattare la pagina allo schermo -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frigo Smart</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 20px; }
-        h1 { margin-top: 0; }
-        /* Il video si adatterà automaticamente alla grandezza dello schermo */
-        video.webcam { max-width: 100%; border-radius: 12px; border: 3px solid #007BFF; box-shadow: 0px 4px 15px rgba(0, 123, 255, 0.4); }
-        .btn { display: inline-block; padding: 15px 20px; margin: 10px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-blue { background-color: #007BFF; color: white; }
-        .btn-blue:active { background-color: #0056b3; }
-        .btn-red { background-color: #DC3545; color: white; }
-        .btn-red:active { background-color: #a71d2a; }
-        .container { max-width: 800px; margin: auto; }
-        
-        /* Stili per la chat */
-        .chat-container { background-color: #1E1E1E; border-radius: 10px; margin-top: 20px; border: 1px solid #333; overflow: hidden; }
-        .chat-box { padding: 15px; height: 200px; overflow-y: auto; text-align: left; }
-        .chat-box p { margin: 5px 0; border-bottom: 1px solid #2a2a2a; padding-bottom: 5px; }
-        .chat-input-area { display: flex; padding: 10px; background-color: #121212; border-top: 1px solid #333; }
-        .chat-input { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; font-size: 16px; outline: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FrigoSmart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F6F7;
+    --surface:#FFFFFF;
+    --border:#E1E6E8;
+    --ink:#16242C;
+    --ink-soft:#5C6B73;
+    --ink-faint:#8A969C;
+    --accent:#1E5F63;
+    --accent-deep:#143F42;
+    --hero-bg:#EFEAD9;
+    --coral:#D8714A;
+    --sage:#7FA06B;
+    --amber:#D9A441;
+    --paleblue:#6FA8AA;
+    --cream:#FBF2DA;
+    --casing:#123135;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{
+    max-width:920px;
+    margin:0 auto;
+    padding:0 20px 60px;
+  }
+
+  .hero{
+    background:var(--hero-bg);
+    margin:0 -20px 26px;
+    padding:36px 20px;
+    display:flex;
+    align-items:center;
+    gap:24px;
+  }
+  .hero-text{ flex:1; min-width:200px; }
+  .hero-eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--accent-deep);
+    margin:0 0 8px;
+  }
+  .hero-text h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:38px;
+    margin:0 0 10px;
+    line-height:1.05;
+    color:var(--casing);
+  }
+  .hero-sub{
+    margin:0;
+    font-size:14.5px;
+    color:var(--ink-soft);
+    max-width:320px;
+    line-height:1.5;
+  }
+  .hero-art{ width:200px; flex-shrink:0; }
+  .hero-art svg{ width:100%; height:auto; display:block; }
+  @media (max-width:620px){
+    .hero{ flex-direction:column; text-align:center; padding:30px 20px; }
+    .hero-sub{ margin:0 auto; }
+    .hero-art{ width:160px; }
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:1.1fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:760px){
+    .grid{ grid-template-columns:1fr; }
+  }
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .panel-head{
+    padding:12px 16px;
+    border-bottom:1px solid var(--border);
+    font-size:12.5px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--ink-soft);
+  }
+  .visual-body{
+    position:relative;
+    aspect-ratio:4/3;
+    background:#0E1A1F;
+  }
+  .visual-body video,
+  .visual-body img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .actions{
+    display:flex;
+    gap:8px;
+    padding:12px 16px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    flex:1;
+    min-width:120px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    padding:10px 12px;
+    border-radius:7px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .btn:hover{ background:var(--bg); }
+  .btn-primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .btn-primary:hover{ background:var(--accent-deep); }
+  .btn-ghost{ flex:none; width:100%; }
+  input[type="file"]{ display:none; }
+  .chat-body{
+    height:330px;
+    overflow-y:auto;
+    padding:14px 16px;
+  }
+  .msg{
+    margin:0 0 14px;
+    font-size:14px;
+    line-height:1.55;
+    max-width:92%;
+  }
+  .msg-tag{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-bottom:3px;
+  }
+  .msg-user{ margin-left:auto; text-align:right; }
+  .msg-user .msg-tag{ text-align:right; }
+  .msg-bot{ color:var(--ink); }
+  .msg-error{ color:#A6402C; }
+  .msg-listening{ color:var(--accent); display:flex; align-items:center; gap:6px; }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--accent); animation:pulse 1s infinite ease-in-out; }
+  @keyframes pulse{ 0%,100%{opacity:.3;} 50%{opacity:1;} }
+  .mono{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    padding:1px 5px;
+    border-radius:4px;
+  }
+  .chat-input{ display:flex; gap:8px; padding:12px 14px; border-top:1px solid var(--border); }
+  .chat-input input{
+    flex:1; border:1px solid var(--border); background:var(--bg);
+    border-radius:7px; padding:9px 12px; font-family:'Inter', sans-serif;
+    font-size:14px; color:var(--ink); outline:none;
+  }
+  .chat-input input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(30,95,99,0.14); }
+  .send-btn{
+    border:none; background:var(--accent); color:#fff; border-radius:7px;
+    padding:0 16px; font-weight:600; font-size:13.5px; cursor:pointer;
+  }
+  .send-btn:hover{ background:var(--accent-deep); }
+  .vol-row{ display:flex; justify-content:flex-end; padding:8px 16px 0; }
+  .vol-btn{
+    border:1px solid var(--border); background:transparent; color:var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:4px 9px;
+    border-radius:14px; cursor:pointer;
+  }
+  .vol-btn.is-off{ color:#A6402C; border-color:#E0B3A5; }
+  button:focus-visible, input:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ .dot{ animation:none; } }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🧊 Frigo Smart</h1>
-        
-        <!-- Questo tag VIDEO carica la fotocamera del telefono (o del PC) -->
-        <video id="videoElement" class="webcam" autoplay playsinline></video>
-        <canvas id="canvasElement" style="display:none;"></canvas>
-        
-        <br>
-        
-        <!-- Bottoni di interazione -->
-        <button class="btn btn-blue" onclick="eseguiScansione()">📷 Scansiona</button>
-        <button class="btn btn-red" onclick="avviaAscolto()">🎤 Parla</button>
+<div class="shell">
 
-        <!-- Chatbot Container -->
-        <div class="chat-container">
-            <!-- Intestazione Chat con bottone Volume -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background-color: #2a2a2a; border-bottom: 1px solid #333;">
-                <span style="font-weight: bold;">💬 Chat Assistente</span>
-                <button id="btnVolume" class="btn btn-blue" style="padding: 5px 10px; margin: 0; font-size: 14px;" onclick="toggleVolume()">🔊 Volume ON</button>
-            </div>
-            <div class="chat-box" id="chatBox">
-                <p><strong>🤖 Assistente:</strong> Ciao! Server Web avviato con successo. Scrivimi qualcosa!</p>
-            </div>
-            <div class="chat-input-area">
-                <!-- Casella di testo -->
-                <input type="text" id="chatInput" class="chat-input" placeholder="Scrivi un messaggio..." onkeypress="gestisciInvio(event)">
-                <!-- Bottone invio -->
-                <button class="btn btn-blue" style="margin: 0 0 0 10px; padding: 10px 15px;" onclick="inviaMessaggio()">Invia</button>
-            </div>
-        </div>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="hero-eyebrow">Assistente anti-spreco</p>
+      <h1>FrigoSmart</h1>
+      <p class="hero-sub">Scansiona il frigo, scopri cosa hai e cosa cucinare prima che scada.</p>
     </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 280 240" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="cavity"><rect x="34" y="26" width="212" height="188" rx="12"/></clipPath>
+          <radialGradient id="glow" cx="50%" cy="20%" r="70%">
+            <stop offset="0%" stop-color="#FFF8E6" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#FFF8E6" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect x="20" y="10" width="240" height="220" rx="20" fill="#123135"/>
+        <rect x="244" y="70" width="8" height="70" rx="4" fill="#0B2326"/>
+        <rect x="34" y="26" width="212" height="188" rx="12" fill="#FBF2DA"/>
+        <g clip-path="url(#cavity)">
+          <circle cx="140" cy="60" r="100" fill="url(#glow)"/>
+          <rect x="34" y="118" width="212" height="6" fill="#D8CDA8"/>
+          <rect x="34" y="176" width="212" height="6" fill="#D8CDA8"/>
+          <circle cx="76" cy="100" r="18" fill="#D8714A"/>
+          <rect x="72" y="78" width="4" height="10" fill="#123135"/>
+          <polygon points="108,75 134,75 121,63" fill="#6FA8AA"/>
+          <rect x="108" y="75" width="26" height="42" rx="3" fill="#6FA8AA"/>
+          <circle cx="168" cy="104" r="7" fill="#FBF2DA" stroke="#123135" stroke-opacity="0.3"/>
+          <circle cx="182" cy="104" r="7" fill="#FBF2DA" stroke="#123135" stroke-opacity="0.3"/>
+          <circle cx="175" cy="93" r="7" fill="#FBF2DA" stroke="#123135" stroke-opacity="0.3"/>
+          <circle cx="76" cy="160" r="6" fill="#7FA06B"/>
+          <circle cx="86" cy="160" r="6" fill="#7FA06B"/>
+          <circle cx="81" cy="151" r="6" fill="#7FA06B"/>
+          <circle cx="81" cy="169" r="6" fill="#7FA06B"/>
+          <polygon points="140,178 172,178 156,152" fill="#D9A441"/>
+        </g>
+      </svg>
+    </div>
+  </section>
 
-    <!-- JAVASCRIPT PER LA CHAT -->
-    <script>
-        const chatBox = document.getElementById("chatBox");
-        const chatInput = document.getElementById("chatInput");
-        const videoElement = document.getElementById("videoElement");
-        const canvasElement = document.getElementById("canvasElement");
-        let volumeOn = true; // Stato iniziale del volume
+  <div class="grid">
 
-        // Richiede l'accesso alla fotocamera del telefono appena si carica la pagina
-        async function avviaFotocamera() {
-            try {
-                // 'facingMode: environment' richiede la fotocamera posteriore del cellulare
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                videoElement.srcObject = stream;
-            } catch (err) {
-                chatBox.innerHTML += `<p style="color: #DC3545;"><strong>❌ Errore fotocamera:</strong> Impossibile accedere. Se sei su cellulare, leggi la nota sulla sicurezza!</p>`;
-            }
-        }
-        window.onload = avviaFotocamera;
+    <section class="panel">
+      <div class="panel-head">Scansione</div>
+      <div class="visual-body" id="visualBody">
+        <video id="videoElement" autoplay playsinline></video>
+        <canvas id="canvasElement" style="display:none;"></canvas>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="eseguiScansione()">Scansiona</button>
+        <label class="btn" for="fileInput" style="display:flex; align-items:center; justify-content:center;">Carica foto</label>
+        <input type="file" id="fileInput" accept="image/*" onchange="gestisciCaricamento(event)">
+      </div>
+      <div class="actions" style="padding-top:0; display:none;" id="resetRow">
+        <button class="btn btn-ghost" onclick="tornaAllaWebcam()">Nuova scansione (torna alla webcam)</button>
+      </div>
+    </section>
 
-        function toggleVolume() {
-            volumeOn = !volumeOn;
-            const btn = document.getElementById("btnVolume");
-            if (volumeOn) {
-                btn.innerHTML = "🔊 Volume ON";
-                btn.className = "btn btn-blue";
-            } else {
-                btn.innerHTML = "🔇 Volume OFF";
-                btn.className = "btn btn-red";
-            }
-        }
+    <section class="panel">
+      <div class="panel-head">Assistente</div>
+      <div class="vol-row">
+        <button id="btnVolume" class="vol-btn" onclick="toggleVolume()">Audio acceso</button>
+      </div>
+      <div class="chat-body" id="chatBox">
+        <p class="msg msg-bot"><span class="msg-tag">Assistente</span>Ciao! Scrivimi o scansiona il frigo per iniziare.</p>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Scrivi un messaggio..." onkeypress="gestisciInvio(event)">
+        <button class="btn" style="flex:none; min-width:auto; padding:9px 12px;" onclick="avviaAscolto()" aria-label="Parla">🎤</button>
+        <button class="send-btn" onclick="inviaMessaggio()">Invia</button>
+      </div>
+    </section>
 
-        function gestisciInvio(event) {
-            if (event.key === "Enter") {
-                inviaMessaggio();
-            }
-        }
+  </div>
+</div>
 
-        async function inviaMessaggio() {
-            const testo = chatInput.value.trim();
-            if (!testo) return; // Se vuoto, non fare nulla
+<script>
+  const chatBox = document.getElementById("chatBox");
+  const chatInput = document.getElementById("chatInput");
+  const canvasElement = document.getElementById("canvasElement");
+  const visualBody = document.getElementById("visualBody");
+  const resetRow = document.getElementById("resetRow");
+  let volumeOn = true;
+  let cameraStream = null;
 
-            // 1. Aggiungi il messaggio dell'utente alla chat
-            chatBox.innerHTML += `<p><strong>👤 Tu:</strong> ${testo}</p>`;
-            chatInput.value = ""; // Svuota la casella
-            chatBox.scrollTop = chatBox.scrollHeight; // Scendi in basso
+  function formattaTesto(testo){
+    return testo.replace(/\b\d{4}-\d{2}-\d{2}\b/g, m => `<span class="mono">${m}</span>`);
+  }
 
-            // 2. Invia la richiesta al server Python
-            const risposta = await fetch('/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: testo, volumeOn: false }) // false = muta il PC!
-            });
-            
-            // 3. Ricevi la risposta e mostrala
-            const dati = await risposta.json();
-            chatBox.innerHTML += `<p style="color: #4da6ff;"><strong>🤖 Assistente:</strong> ${dati.reply}</p>`;
-            chatBox.scrollTop = chatBox.scrollHeight; // Scendi in basso
-            
-            // 4. Riproduci l'audio dal telefono
-            parlaDalTelefono(dati.reply);
-        }
+  async function avviaFotocamera() {
+    const v = document.getElementById("videoElement");
+    if (!v) return;
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      v.srcObject = cameraStream;
+    } catch (err) {
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Fotocamera</span>Non disponibile. Controlla i permessi del browser e ricarica la pagina.</p>`;
+    }
+  }
+  window.onload = avviaFotocamera;
 
-        async function eseguiScansione() {
-            // Inserisce un messaggio di feedback visivo
-            chatBox.innerHTML += `<p><strong>🤖 Assistente:</strong> Avvio scansione in corso... ⏳</p>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-            
-            // 1. Scatta una "foto" dal video del cellulare
-            canvasElement.width = videoElement.videoWidth;
-            canvasElement.height = videoElement.videoHeight;
-            const ctx = canvasElement.getContext('2d');
-            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-            
-            // 2. Converti in testo (Base64) per poterlo inviare
-            const imageData = canvasElement.toDataURL('image/jpeg');
+  function toggleVolume() {
+    volumeOn = !volumeOn;
+    const btn = document.getElementById("btnVolume");
+    btn.textContent = volumeOn ? "Audio acceso" : "Audio spento";
+    btn.classList.toggle("is-off", !volumeOn);
+  }
 
-            try {
-                const risposta = await fetch('/scansiona', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData, volumeOn: false }) // false = muta il PC!
-                });
-                const dati = await risposta.json();
-                
-                chatBox.innerHTML += `<p style="color: #4da6ff;"><strong>🤖 Assistente:</strong> ${dati.message}</p>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-                
-                // Riproduci l'audio dal telefono
-                parlaDalTelefono(dati.message);
-            } catch (errore) {
-                chatBox.innerHTML += `<p style="color: #DC3545;"><strong>❌ Errore:</strong> Impossibile completare la scansione.</p>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        }
+  function gestisciInvio(event) {
+    if (event.key === "Enter") inviaMessaggio();
+  }
 
-        // ==========================================
-        // FUNZIONI PER MICROFONO E AUDIO (TELEFONO)
-        // ==========================================
+  async function inviaMessaggio() {
+    const testo = chatInput.value.trim();
+    if (!testo) return;
 
-        // Configurazione Riconoscimento Vocale (STT)
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition;
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.lang = 'it-IT';
-            recognition.interimResults = false;
+    chatBox.innerHTML += `<p class="msg msg-user"><span class="msg-tag">Tu</span>${testo}</p>`;
+    chatInput.value = "";
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-            recognition.onresult = function(event) {
-                const testoAscoltato = event.results[0][0].transcript;
-                chatInput.value = testoAscoltato; // Inserisce il testo nella barra
-                inviaMessaggio(); // Lo invia in automatico al server!
-            };
+    const risposta = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: testo, volumeOn: false })
+    });
 
-            // Se c'è un errore, lo stampiamo nella chat
-            recognition.onerror = function(event) {
-                chatBox.innerHTML += `<p style="color: #DC3545;"><strong>❌ Errore microfono:</strong> ${event.error} (potrebbe essere un blocco di sicurezza del browser)</p>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            };
+    const dati = await risposta.json();
+    chatBox.innerHTML += `<p class="msg msg-bot"><span class="msg-tag">Assistente</span>${formattaTesto(dati.reply)}</p>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-            recognition.onend = function() {
-                console.log("Microfono disattivato.");
-            };
-        }
+    parlaDalTelefono(dati.reply);
+  }
 
-        function avviaAscolto() {
-            if (recognition) {
-                chatBox.innerHTML += `<p style="color: #ff9900;"><strong>🎤 In ascolto... Parla ora!</strong></p>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-                recognition.start();
-            } else {
-                alert("Il tuo browser non supporta il microfono. Usa Chrome o Safari.");
-            }
-        }
+  async function inviaImmagineAlServer(imageData) {
+    chatBox.innerHTML += `<p class="msg msg-bot"><span class="msg-tag">Assistente</span>Scansione in corso...</p>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-        // Configurazione Sintesi Vocale (TTS - Audio dal telefono)
-        function parlaDalTelefono(testo) {
-            if (!volumeOn) return; // Rispetta il bottone del volume nell'interfaccia
-            if ('speechSynthesis' in window) {
-                // Ferma un eventuale audio precedente per non accavallare le voci
-                window.speechSynthesis.cancel();
-                const sintesi = new SpeechSynthesisUtterance(testo);
-                sintesi.lang = 'it-IT';
-                window.speechSynthesis.speak(sintesi);
-            }
-        }
-    </script>
+    try {
+      const risposta = await fetch('/scansiona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageData, volumeOn: false })
+      });
+      const dati = await risposta.json();
+
+      chatBox.innerHTML += `<p class="msg msg-bot"><span class="msg-tag">Assistente</span>${formattaTesto(dati.message)}</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      if (dati.immagine) {
+        mostraRisultato(dati.immagine);
+      }
+      parlaDalTelefono(dati.message);
+    } catch (errore) {
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Scansione</span>Non riuscita. Controlla la connessione e riprova.</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  }
+
+  function mostraRisultato(immagineBase64) {
+    visualBody.innerHTML = `<img src="${immagineBase64}" alt="Risultato scansione con box di rilevamento">`;
+    resetRow.style.display = "block";
+  }
+
+  function tornaAllaWebcam() {
+    visualBody.innerHTML = `<video id="videoElement" autoplay playsinline></video>`;
+    resetRow.style.display = "none";
+    avviaFotocamera();
+  }
+
+  async function eseguiScansione() {
+    const v = document.getElementById("videoElement");
+    if (!v || !v.videoWidth) {
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Scansione</span>Webcam non attiva. Usa "Carica foto" oppure ricarica la pagina.</p>`;
+      return;
+    }
+    canvasElement.width = v.videoWidth;
+    canvasElement.height = v.videoHeight;
+    const ctx = canvasElement.getContext('2d');
+    ctx.drawImage(v, 0, 0, canvasElement.width, canvasElement.height);
+    const imageData = canvasElement.toDataURL('image/jpeg');
+    inviaImmagineAlServer(imageData);
+  }
+
+  function gestisciCaricamento(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      inviaImmagineAlServer(e.target.result);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition;
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'it-IT';
+    recognition.interimResults = false;
+
+    recognition.onresult = function(event) {
+      const testoAscoltato = event.results[0][0].transcript;
+      chatInput.value = testoAscoltato;
+      inviaMessaggio();
+    };
+
+    recognition.onerror = function(event) {
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Microfono</span>Bloccato (${event.error}). Controlla i permessi del browser.</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    };
+  }
+
+  function avviaAscolto() {
+    if (recognition) {
+      chatBox.innerHTML += `<p class="msg msg-listening"><span class="dot"></span>In ascolto, parla ora</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+      recognition.start();
+    } else {
+      alert("Il tuo browser non supporta il microfono. Usa Chrome o Safari.");
+    }
+  }
+
+  function parlaDalTelefono(testo) {
+    if (!volumeOn) return;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const sintesi = new SpeechSynthesisUtterance(testo);
+      sintesi.lang = 'it-IT';
+      window.speechSynthesis.speak(sintesi);
+    }
+  }
+</script>
 </body>
 </html>

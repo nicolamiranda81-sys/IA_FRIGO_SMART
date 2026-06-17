@@ -4,10 +4,11 @@ import base64
 import numpy as np
 import time
 import os
+import re
 import uuid
 from flask import Flask, render_template, Response, request, jsonify
 from riconoscitore_vocale import parla
-from rilevatore_Oggetti import trova_ritagli
+from rilevatore_Oggetti import trova_ritagli, conta_uova
 from riconoscitore_alimenti import RiconoscitoreAlimenti
 from database import Database
 
@@ -59,11 +60,9 @@ def chat():
     dati = request.get_json()
     messaggio_utente = dati.get('message', '')
     volume_attivo = dati.get('volumeOn', True)
-    
-    # 💬 Interroghiamo Dialogflow con il messaggio dell'utente!
+
     risposta = invia_a_dialogflow(messaggio_utente)
-    
-    # Se il volume è attivo nell'interfaccia, facciamo parlare l'assistente in background
+
     if volume_attivo:
         threading.Thread(target=parla, args=(risposta,)).start()
 
@@ -79,7 +78,6 @@ def scansiona():
     if not immagine_b64:
         return jsonify({'message': 'Errore: Nessuna immagine ricevuta dal dispositivo.'})
 
-    # Rimuove l'intestazione "data:image/jpeg;base64," e decodifica l'immagine per OpenCV
     try:
         if ',' in immagine_b64:
             immagine_b64 = immagine_b64.split(',')[1]
@@ -89,42 +87,66 @@ def scansiona():
 
         if frame is None:
             raise ValueError("Immagine non valida")
-            
-        # ⚠️ FONDAMENTALE: Rimpiccioliamo l'immagine prima di analizzarla!
-        # Evita che l'IA si blocchi per decine di minuti su foto ad altissima risoluzione.
+
         frame = cv2.resize(frame, (800, 600))
     except Exception as e:
         return jsonify({'message': 'Errore nella decodifica dell\'immagine.'})
 
-    # 1. Trova i ritagli sull'immagine ricevuta dal telefono
     ritagli = trova_ritagli(frame)
     alimenti_trovati = []
 
-    print(f"\n📸 Foto ricevuta dal cellulare!")
+    print(f"\n📸 Foto ricevuta!")
     print(f"🔎 Trovati {len(ritagli)} potenziali oggetti. Inizio Analisi IA...")
 
-    # Puliamo il database: la nuova scansione rappresenta lo stato attuale del frigo
     db.svuota_database()
 
-    # 2. Riconosce ogni ritaglio tramite l'IA
-    for indice, (ritaglio_img, _) in enumerate(ritagli, 1):
+    for indice, (ritaglio_img, box) in enumerate(ritagli, 1):
+        x, y, w, h = box
         print(f"🤖 Analisi oggetto {indice}/{len(ritagli)} in corso...")
         alimento = riconoscitore.riconosci(ritaglio_img)
-        if alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70:
+        riconosciuto = alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70
+
+        if riconosciuto and alimento.nome.lower() == 'uova':
+            sotto_box = conta_uova(ritaglio_img)
+            if sotto_box:
+                for (ux, uy, uw, uh) in sotto_box:
+                    db.aggiungi_alimento(alimento)
+                    alimenti_trovati.append(alimento.nome)
+                    ax, ay = x + ux, y + uy
+                    cv2.rectangle(frame, (ax, ay), (ax + uw, ay + uh), (76, 175, 80), 2)
+                    cv2.putText(frame, "Uovo", (ax + 2, ay - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+            else:
+                db.aggiungi_alimento(alimento)
+                alimenti_trovati.append(alimento.nome)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (76, 175, 80), 2)
+                cv2.putText(frame, "Uova", (x + 2, y - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            continue
+        elif riconosciuto:
             db.aggiungi_alimento(alimento)
             alimenti_trovati.append(alimento.nome)
+            etichetta = f"{alimento.nome} {alimento.confidenza:.0f}%"
+            colore = (76, 175, 80)
+        else:
+            etichetta = "non classificato"
+            colore = (158, 158, 158)
 
-    # 3. Prepara la risposta
+        cv2.rectangle(frame, (x, y), (x + w, y + h), colore, 2)
+        (tw, th), _ = cv2.getTextSize(etichetta, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        cv2.rectangle(frame, (x, y - th - 8), (x + tw + 6, y), colore, -1)
+        cv2.putText(frame, etichetta, (x + 3, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+    _, buffer = cv2.imencode('.jpg', frame)
+    immagine_annotata = base64.b64encode(buffer).decode('utf-8')
+
     if alimenti_trovati:
         risposta = f"Scansione completata! Ho trovato e salvato: {', '.join(alimenti_trovati)}."
     else:
         risposta = "Scansione terminata. Non ho riconosciuto nulla di noto."
 
-    # Fa parlare l'assistente se il volume è attivo
     if volume_attivo:
         threading.Thread(target=parla, args=(risposta,)).start()
 
-    return jsonify({'message': risposta})
+    return jsonify({'message': risposta, 'immagine': f"data:image/jpeg;base64,{immagine_annotata}"})
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
