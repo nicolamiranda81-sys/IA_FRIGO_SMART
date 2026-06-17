@@ -13,8 +13,8 @@ from database import Database
 
 # --- CONFIGURAZIONE DIALOGFLOW ---
 # Imposta il percorso del file segreto scaricato da Google Cloud
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/dd/Scrivania/PROGETTO_ACADEMY/credenziali.json"
-DIALOGFLOW_PROJECT_ID = "INSERISCI_QUI_IL_TUO_PROJECT_ID"  # Es: "frigo-smart-abcde"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\aless\OneDrive\Desktop\IA_FRIGO_SMART\credenziali.json"
+DIALOGFLOW_PROJECT_ID = "frigosmart-ejtr"
 DIALOGFLOW_LANGUAGE_CODE = "it"
 SESSION_ID = str(uuid.uuid4()) # Crea una sessione univoca per la memoria dell'utente
 

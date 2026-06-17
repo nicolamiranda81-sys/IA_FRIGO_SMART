@@ -5,3 +5,6 @@ __pycache__/
 # Database locale e file multimediali di test
 *.jpeg
 *.jpg
+
+# Credenziali sensibili - NON committare mai
+credenziali.json
