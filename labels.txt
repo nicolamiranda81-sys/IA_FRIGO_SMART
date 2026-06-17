@@ -1,5 +1,7 @@
 0 Banana
-1 Mela
-2 Uova
-3 Pomodoro
-4 Niente
+1 Carota
+2 Cetriolo
+3 Latte
+4 Affettati
+5 Uova
+6 Yogurt
