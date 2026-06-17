@@ -25,12 +25,11 @@ db = Database()
 
 RICETTE = {
     frozenset(["uova", "latte"]): "frittata",
-    frozenset(["pomodoro", "mozzarella"]): "insalata caprese",
     frozenset(["banana", "yogurt"]): "frullato",
-    frozenset(["carota", "lattuga"]): "insalata mista",
-    frozenset(["uova", "burro"]): "uova strapazzate",
-    frozenset(["mela verde", "yogurt"]): "Macedonia con yogurt",
-    frozenset(["carne rossa", "cipolla bianca"]): "spezzatino",
+    frozenset(["carota", "cetriolo"]): "insalata di carote e cetrioli",
+    frozenset(["carne rossa", "carota"]): "spezzatino di carne e carote",
+    frozenset(["uova", "carne rossa"]): "uova con carne saltata",
+    frozenset(["yogurt", "carota"]): "carote allo yogurt",
 }
 
 @app.route('/')
@@ -104,6 +103,9 @@ def scansiona():
     print(f"\n📸 Foto ricevuta dal cellulare!")
     print(f"🔎 Trovati {len(ritagli)} potenziali oggetti. Inizio Analisi IA...")
 
+    # Puliamo il database: la nuova scansione rappresenta lo stato attuale del frigo
+    db.svuota_database()
+
     # 2. Riconosce ogni ritaglio tramite l'IA
     for indice, (ritaglio_img, _) in enumerate(ritagli, 1):
         print(f"🤖 Analisi oggetto {indice}/{len(ritagli)} in corso...")
@@ -147,15 +149,15 @@ def webhook():
             risposta = "Nessun prodotto in scadenza."
 
     elif intent == 'cosa_posso_cucinare':
-        ingredienti = set(db.get_alimenti_per_ricette())
-        suggerimenti = []
-        for combo, ricetta in RICETTE.items():
-            if combo.issubset(ingredienti):
-                suggerimenti.append(ricetta)
-        if suggerimenti:
-            risposta = f"Puoi preparare: {', '.join(suggerimenti)}."
-        else:
-            risposta = "Non ho ricette per gli ingredienti che hai al momento."
+            ingredienti = set(i.lower() for i in db.get_alimenti_per_ricette())
+            suggerimenti = []
+            for combo, ricetta in RICETTE.items():
+                if combo.issubset(ingredienti):
+                    suggerimenti.append(ricetta)
+            if suggerimenti:
+                risposta = f"Puoi preparare: {', '.join(suggerimenti)}."
+            else:
+                risposta = "Non ho ricette per gli ingredienti che hai al momento."
 
     elif intent == 'ho_consumato_alimento':
         alimento = req['queryResult']['parameters'].get('alimento', '')
@@ -176,10 +178,9 @@ def webhook():
 
     elif intent == 'quando_scade_alimento':
         alimento = req['queryResult']['parameters'].get('alimento', '')
-        scadenze = db.get_scadenze_vicine()
-        trovato = [row for row in scadenze if row[0].lower() == alimento.lower()]
-        if trovato:
-            risposta = f"{trovato[0][0]} scade il {trovato[0][1]}."
+        risultato = db.get_scadenza_alimento(alimento)
+        if risultato:
+            risposta = f"{risultato[0]} scade il {risultato[1]}."
         else:
             risposta = f"Non ho informazioni sulla scadenza di {alimento}."
 

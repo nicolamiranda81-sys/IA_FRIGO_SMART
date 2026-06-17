@@ -52,7 +52,13 @@ class Database:
     def get_scadenze_vicine(self):
         conn, cursor = self._get_conn()          
         oggi = datetime.now().strftime("%Y-%m-%d")
-        cursor.execute("""SELECT ...""")         
+        cursor.execute("""
+        SELECT nome, data_scadenza FROM alimenti
+        WHERE data_scadenza IS NOT NULL AND data_scadenza != ''
+        AND date(data_scadenza) <= date(?, '+7 days')
+        AND date(data_scadenza) >= date(?)
+        ORDER BY data_scadenza ASC
+    """, (oggi, oggi))
         risultati = cursor.fetchall()            
         conn.close()                            
         return risultati
@@ -66,16 +72,39 @@ class Database:
 
     def rimuovi_alimento(self, nome):
         conn, cursor = self._get_conn()          
-        cursor.execute("""DELETE ...""", (nome,)) 
+        cursor.execute("""
+        DELETE FROM alimenti WHERE id IN (
+            SELECT id FROM alimenti WHERE LOWER(nome) = LOWER(?) LIMIT 1
+        )
+    """, (nome,))
         conn.commit()                            
         conn.close()      
 
+    def svuota_database(self):
+        conn, cursor = self._get_conn()
+        cursor.execute("DELETE FROM alimenti")
+        conn.commit()
+        conn.close()
+        print("🗑️ DB svuotato: pronto per la nuova scansione")
+
     def get_quantita_alimento(self, nome):
         conn, cursor = self._get_conn()
-        cursor.execute("SELECT nome, COUNT(*) FROM alimenti WHERE LOWER(nome) LIKE LOWER(?) GROUP BY nome", (f"%{nome[:5]}%",))
+        cursor.execute("SELECT nome, COUNT(*) FROM alimenti WHERE LOWER(nome) = LOWER(?) GROUP BY nome", (nome,))
         risultato = cursor.fetchone()
         conn.close()
         return risultato                      
+
+    def get_scadenza_alimento(self, nome):
+        conn, cursor = self._get_conn()
+        cursor.execute("""
+            SELECT nome, data_scadenza FROM alimenti
+            WHERE LOWER(nome) = LOWER(?)
+            AND data_scadenza IS NOT NULL AND data_scadenza != ''
+            LIMIT 1
+        """, (nome,))
+        risultato = cursor.fetchone()
+        conn.close()
+        return risultato
 
 # --- TEST DI FUNZIONAMENTO ---
 if __name__ == "__main__":
