@@ -13,7 +13,7 @@ MIN_AREA = 900
 model = load_model("keras_model.h5", compile=False)
 class_names = open("labels.txt", "r").readlines()
 
-image = cv2.imread("foto_frigo4.jpg")
+image = cv2.imread("demo3 (2).png")
 
 if image is None:
     print("Errore: foto_frigo.jpg non trovata")
