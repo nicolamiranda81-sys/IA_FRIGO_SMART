@@ -64,13 +64,12 @@ class RiconoscitoreAlimenti:
         indice_classe = np.argmax(previsione)
         nome_classe_grezzo = self.nomi_classi[indice_classe].strip()
         nome_pulito = nome_classe_grezzo.split(" ", 1)[1] if " " in nome_classe_grezzo else nome_classe_grezzo
-        
-        # --- STRATAGEMMA: Scambio Affettati e Yogurt ---
+
         if nome_pulito.lower() == "affettati":
             nome_pulito = "Yogurt"
         elif nome_pulito.lower() == "yogurt":
             nome_pulito = "Affettati"
-            
+
         punteggio_confidenza = previsione[0][indice_classe] * 100
 
         return Alimento(nome=nome_pulito, confidenza=punteggio_confidenza)
