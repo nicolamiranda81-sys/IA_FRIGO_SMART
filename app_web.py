@@ -13,7 +13,7 @@ from riconoscitore_alimenti import RiconoscitoreAlimenti
 from database import Database
 from Alimento import Alimento
 
-# --- CONFIGURAZIONE DIALOGFLOW ---
+# CONFIGURAZIONE DIALOGFLOW
 # Imposta il percorso del file segreto scaricato da Google Cloud
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, "credenziali.json")
