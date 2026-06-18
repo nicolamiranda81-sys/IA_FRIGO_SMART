@@ -58,6 +58,9 @@ def cam(cap, riconoscitore, db):
         print("\n--- Scansione Avviata ---")
         frame_elaborato = frame.copy()
         
+        # Svuotiamo il database dalle vecchie scansioni prima di inserire le nuove
+        db.svuota_database()
+
         # 1. Chiamiamo il nostro modulo per avere i ritagli
         ritagli = trova_ritagli(frame)
         print(f"Trovati {len(ritagli)} potenziali oggetti. Inizio Analisi IA...")

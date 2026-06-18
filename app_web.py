@@ -173,6 +173,9 @@ def scansiona():
     print(f"\n📸 Foto ricevuta dal cellulare!")
     print(f"🔎 Trovati {len(ritagli)} potenziali oggetti. Inizio Analisi IA...")
 
+    # Svuotiamo il database dalle vecchie scansioni prima di inserire i nuovi risultati
+    db.svuota_database()
+
     # 2. Riconosce ogni ritaglio tramite l'IA
     for indice, (ritaglio_img, (x, y, w, h)) in enumerate(ritagli, 1):
         print(f"🤖 Analisi oggetto {indice}/{len(ritagli)} in corso...")
@@ -263,6 +266,25 @@ def webhook():
             risposta = f"{trovato[0][0]} scade il {trovato[0][1]}."
         else:
             risposta = f"Non ho informazioni sulla scadenza di {alimento}."
+
+    elif intent == 'ingredienti_ricetta':
+        ricetta_richiesta = req['queryResult']['parameters'].get('ricetta', '').lower()
+        ingredienti_necessari = []
+        nome_ricetta_trovata = ""
+        
+        if ricetta_richiesta:
+            # Cerchiamo la ricetta nel nostro dizionario
+            for combo, nome_ricetta in RICETTE.items():
+                # Controllo flessibile (se l'utente dice "la frittata" o solo "frittata")
+                if ricetta_richiesta in nome_ricetta.lower() or nome_ricetta.lower() in ricetta_richiesta:
+                    ingredienti_necessari = list(combo)
+                    nome_ricetta_trovata = nome_ricetta
+                    break
+                
+        if ingredienti_necessari:
+            risposta = f"Per preparare {nome_ricetta_trovata} ti servono: {', '.join(ingredienti_necessari)}."
+        else:
+            risposta = f"Mi dispiace, non conosco gli ingredienti per {ricetta_richiesta if ricetta_richiesta else 'questa ricetta'}."
 
     else:
         risposta = "Non ho capito. Puoi chiedermi cosa hai nel frigo, cosa scade o cosa puoi cucinare!"

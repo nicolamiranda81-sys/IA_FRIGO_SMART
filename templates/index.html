@@ -28,7 +28,8 @@
   *{box-sizing:border-box;}
   body{
     margin:0;
-    background:var(--bg);
+    background: linear-gradient(135deg, #F4F6F7 0%, #E1E6E8 100%);
+    background-attachment: fixed;
     color:var(--ink);
     font-family:'Inter', sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -46,6 +47,8 @@
     display:flex;
     align-items:center;
     gap:24px;
+    border-radius:16px;
+    box-shadow: 0 10px 30px rgba(22, 36, 44, 0.05);
   }
   .hero-text{ flex:1; min-width:200px; }
   .hero-eyebrow{
@@ -73,6 +76,12 @@
   }
   .hero-art{ width:200px; flex-shrink:0; }
   .hero-art svg{ width:100%; height:auto; display:block; }
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+  .hero-art svg { animation: float 4s ease-in-out infinite; }
   @media (max-width:620px){
     .hero{ flex-direction:column; text-align:center; padding:30px 20px; }
     .hero-sub{ margin:0 auto; }
@@ -92,6 +101,12 @@
     border:1px solid var(--border);
     border-radius:10px;
     overflow:hidden;
+    box-shadow: 0 10px 30px rgba(22, 36, 44, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .panel:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px rgba(22, 36, 44, 0.08);
   }
   .panel-head{
     padding:12px 16px;
@@ -169,10 +184,24 @@
     color:var(--ink-faint);
     margin-bottom:3px;
   }
-  .msg-user{ margin-left:auto; text-align:right; }
-  .msg-user .msg-tag{ text-align:right; }
-  .msg-bot{ color:var(--ink); }
-  .msg-error{ color:#A6402C; }
+  .msg-user{ 
+    margin-left:auto; 
+    background: var(--accent); 
+    color: white; 
+    padding: 10px 14px; 
+    border-radius: 14px 14px 0 14px; 
+    box-shadow: 0 4px 10px rgba(30, 95, 99, 0.15); 
+  }
+  .msg-user .msg-tag{ color: rgba(255,255,255,0.7); text-align:right; }
+  .msg-bot{ 
+    background: white; 
+    padding: 10px 14px; 
+    border-radius: 14px 14px 14px 0; 
+    border: 1px solid var(--border); 
+    box-shadow: 0 4px 10px rgba(22, 36, 44, 0.05); 
+    color: var(--ink); 
+  }
+  .msg-error{ background: #fdf2f0; padding: 10px 14px; border-radius: 14px; border: 1px solid #E0B3A5; color:#A6402C; }
   .msg-listening{ color:var(--accent); display:flex; align-items:center; gap:6px; }
   .dot{ width:6px; height:6px; border-radius:50%; background:var(--accent); animation:pulse 1s infinite ease-in-out; }
   @keyframes pulse{ 0%,100%{opacity:.3;} 50%{opacity:1;} }
@@ -192,10 +221,12 @@
   }
   .chat-input input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(30,95,99,0.14); }
   .send-btn{
-    border:none; background:var(--accent); color:#fff; border-radius:7px;
+    border:none; background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color:#fff; border-radius:7px;
     padding:0 16px; font-weight:600; font-size:13.5px; cursor:pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(30, 95, 99, 0.2);
   }
-  .send-btn:hover{ background:var(--accent-deep); }
+  .send-btn:hover{ transform: translateY(-1px); box-shadow: 0 6px 12px rgba(30, 95, 99, 0.3); }
   .vol-row{ display:flex; justify-content:flex-end; padding:8px 16px 0; }
   .vol-btn{
     border:1px solid var(--border); background:transparent; color:var(--ink-soft);
@@ -205,50 +236,189 @@
   .vol-btn.is-off{ color:#A6402C; border-color:#E0B3A5; }
   button:focus-visible, input:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   
-  /* Stili Inventario */
-  .inventory-grid {
+  /* Stili Inventario Frigo Reale */
+  .fridge-wrapper {
+    margin: 20px 0;
+    border-radius: 16px;
+    background: #e5e7eb;
+    border: 15px solid #f3f4f6;
+    border-bottom-width: 30px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 
+      0 20px 50px rgba(0,0,0,0.15),
+      inset 0 0 0 5px #d1d5db,
+      inset 15px 0 20px rgba(0,0,0,0.05),
+      inset -15px 0 20px rgba(0,0,0,0.05);
+    min-height: 450px;
+    display: flex;
+    flex-direction: column;
+  }
+  .fridge-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border: 8px solid #9ca3af;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+  }
+  .fridge-light {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 80px;
+    background: radial-gradient(ellipse at top, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%);
+    pointer-events: none;
+    z-index: 8;
+  }
+  .fridge-interior {
+    background: linear-gradient(180deg, #d8e5e8 0%, #b9d0d8 100%);
+    flex: 1;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 135px,
+      rgba(255, 255, 255, 0.9) 135px,
+      rgba(150, 180, 190, 0.4) 140px,
+      rgba(255, 255, 255, 0.2) 145px,
+      transparent 145px
+    );
+    background-size: 100% 145px;
+    padding: 0 10px 140px 10px; /* Spazio per il cassetto in basso */
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 10px;
-    padding: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-auto-rows: 145px;
+    position: relative;
+    z-index: 4;
   }
   .inventory-item {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 12px;
+    padding: 10px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative;
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+    align-self: end;
+    justify-self: center;
+    margin-bottom: 12px;
+    width: 90%;
+    height: 100px;
+    transition: all 0.3s ease;
+  }
+  .inventory-item::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: -10%;
+    width: 80%;
+    height: 6px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 50%;
+    filter: blur(2px);
+    z-index: -1;
+    transition: all 0.3s ease;
+  }
+  .inventory-item:hover {
+    transform: translateY(-10px) scale(1.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: #fff;
+    box-shadow: 0 15px 25px rgba(111, 168, 170, 0.3);
+  }
+  .inventory-item:hover::after {
+    transform: scale(0.8);
+    opacity: 0.5;
   }
   .inventory-item span.nome {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 14px;
     color: var(--ink);
+    text-shadow: 0 1px 2px rgba(255,255,255,0.8);
   }
   .inventory-item span.quantita {
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
     color: #fff;
     border-radius: 12px;
-    padding: 2px 8px;
+    padding: 3px 10px;
     font-size: 11px;
     font-weight: 700;
-    margin-top: 6px;
+    margin-top: 8px;
+    box-shadow: 0 3px 8px rgba(30, 95, 99, 0.3);
+  }
+  .fridge-crisper {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 130px;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(10px);
+    border-top: 4px solid rgba(255,255,255,0.9);
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    z-index: 5;
+  }
+  .crisper-drawer {
+    flex: 1;
+    background: rgba(255,255,255,0.3);
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 8px;
+    box-shadow: inset 0 5px 15px rgba(0,0,0,0.05);
+    position: relative;
+  }
+  .crisper-drawer::before {
+    content: '';
+    position: absolute;
+    top: 15px; left: 50%; transform: translateX(-50%);
+    width: 50%; height: 6px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .cold-mist {
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 60%;
+    background: linear-gradient(to top, rgba(255,255,255,0.8) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 6;
+    animation: breath 4s ease-in-out infinite alternate;
+  }
+  @keyframes breath {
+    0% { opacity: 0.2; transform: scaleY(1); }
+    100% { opacity: 0.5; transform: scaleY(1.1); }
   }
   .empty-state {
-    padding: 24px;
+    grid-column: 1 / -1;
+    align-self: center;
+    padding: 40px 20px;
     text-align: center;
     color: var(--ink-faint);
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+    margin: 20px;
+  }
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 </style>
 </head>
 <body>
 
 <div class="shell">
-  <section class="hero">
+  <section class="hero glass-effect">
     <div class="hero-text">
       <p class="hero-eyebrow">Assistente anti-spreco</p>
       <h1>FrigoSmart</h1>
@@ -288,7 +458,7 @@
   </section>
 
   <div class="grid">
-    <section class="panel">
+    <section class="panel glass-effect">
       <div class="panel-head">Scansione</div>
       <div class="visual-body" id="visualBody">
         <video id="videoElement" autoplay playsinline></video>
@@ -304,7 +474,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel glass-effect">
       <div class="panel-head">Assistente</div>
       <div class="vol-row">
         <button id="btnVolume" class="vol-btn" onclick="toggleVolume()">Audio acceso</button>
@@ -321,7 +491,7 @@
   </div>
 
   <!-- NUOVA SEZIONE: GESTIONE DISPENSA -->
-  <section class="panel" style="margin-top: 18px;">
+  <section class="panel glass-effect" style="margin-top: 18px;">
     <div class="panel-head">
       <span>Il tuo Frigorifero</span>
       <div style="display: flex; gap: 8px;">
@@ -329,8 +499,20 @@
         <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px; min-width: 0;" onclick="svuotaFrigo()">🗑️ Svuota Tutto</button>
       </div>
     </div>
-    <div id="inventarioContainer" class="empty-state">
-      Clicca su "Aggiorna" per visualizzare gli alimenti salvati nel database.
+    <div class="fridge-wrapper">
+      <div class="fridge-light"></div>
+      <div id="inventarioContainer" style="display: flex; flex: 1; flex-direction: column;">
+        <div class="fridge-interior">
+          <div class="empty-state">
+            Clicca su "Aggiorna" per visualizzare gli alimenti salvati.
+          </div>
+        </div>
+      </div>
+      <div class="fridge-crisper">
+        <div class="crisper-drawer"></div>
+        <div class="crisper-drawer"></div>
+      </div>
+      <div class="cold-mist"></div>
     </div>
   </section>
 </div>
@@ -430,7 +612,7 @@
   }
 
   function tornaAllaWebcam() {
-    visualBody.innerHTML = `<video id="videoElement" autoplay playsinline></video>`;
+    visualBody.innerHTML = `<video id="videoElement" autoplay playsinline></video><canvas id="canvasElement" style="display:none;"></canvas>`;
     resetRow.style.display = "none";
     avviaFotocamera();
   }
@@ -469,8 +651,8 @@
       const res = await fetch('/api/inventario');
       const data = await res.json();
       
+      let html = '<div class="fridge-interior">';
       if (data.alimenti && data.alimenti.length > 0) {
-        let html = '<div class="inventory-grid">';
         data.alimenti.forEach(item => {
           html += `
             <div class="inventory-item">
@@ -479,13 +661,13 @@
             </div>
           `;
         });
-        html += '</div>';
-        container.innerHTML = html;
       } else {
-        container.innerHTML = '<div class="empty-state">Il frigo è vuoto. Fai una scansione per aggiungere alimenti!</div>';
+        html += '<div class="empty-state">Il frigo è vuoto. Fai una scansione per aggiungere alimenti!</div>';
       }
+      html += '</div>';
+      container.innerHTML = html;
     } catch(e) {
-      container.innerHTML = '<div class="empty-state" style="color: #A6402C;">Errore nel caricamento dell\'inventario.</div>';
+      container.innerHTML = '<div class="fridge-interior"><div class="empty-state" style="color: #A6402C;">Errore nel caricamento dell\'inventario.</div></div>';
     }
   }
 

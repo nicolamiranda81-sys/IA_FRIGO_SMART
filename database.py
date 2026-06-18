@@ -66,7 +66,7 @@ class Database:
     def get_alimenti_per_ricette(self):
         conn, cursor = self._get_conn()         
         cursor.execute("SELECT DISTINCT nome FROM alimenti")  
-        risultati = [row[0] for row in cursor.fetchall()]     
+        risultati = [row[0].lower() for row in cursor.fetchall()]     
         conn.close()                            
         return risultati
 
