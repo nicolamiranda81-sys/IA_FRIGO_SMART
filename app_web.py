@@ -1,21 +1,22 @@
 import cv2
 import threading
-import base64
+import base64 
+
 import numpy as np
 import time
 import os
-import re
 import uuid
 from flask import Flask, render_template, Response, request, jsonify
 from riconoscitore_vocale import parla
-from rilevatore_Oggetti import trova_ritagli, conta_uova
+from rilevatore_Oggetti import trova_ritagli
 from riconoscitore_alimenti import RiconoscitoreAlimenti
 from database import Database
+from Alimento import Alimento
 
 # --- CONFIGURAZIONE DIALOGFLOW ---
 # Imposta il percorso del file segreto scaricato da Google Cloud
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\aless\OneDrive\Desktop\IA_FRIGO_SMART\credenziali.json"
-DIALOGFLOW_PROJECT_ID = "frigosmart-ejtr"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/dd/Scrivania/PROGETTO_ACADEMY/credenziali.json"
+DIALOGFLOW_PROJECT_ID = "frigosmart-ejtr"  # Es: "frigo-smart-abcde"
 DIALOGFLOW_LANGUAGE_CODE = "it"
 SESSION_ID = str(uuid.uuid4()) # Crea una sessione univoca per la memoria dell'utente
 
@@ -26,17 +27,35 @@ db = Database()
 
 RICETTE = {
     frozenset(["uova", "latte"]): "frittata",
+    frozenset(["pomodoro", "mozzarella"]): "insalata caprese",
     frozenset(["banana", "yogurt"]): "frullato",
-    frozenset(["carota", "cetriolo"]): "insalata di carote e cetrioli",
-    frozenset(["carne rossa", "carota"]): "spezzatino di carne e carote",
-    frozenset(["uova", "carne rossa"]): "uova con carne saltata",
-    frozenset(["yogurt", "carota"]): "carote allo yogurt",
+    frozenset(["carota", "lattuga"]): "insalata mista",
+    frozenset(["uova", "burro"]): "uova strapazzate",
+    frozenset(["mela verde", "yogurt"]): "Macedonia con yogurt",
+    frozenset(["carne rossa", "cipolla bianca"]): "spezzatino",
 }
+
+# --- VARIABILI GLOBALI PER LIVE MODE WEB ---
+ultimo_tempo_ia_web = 0
+ultime_etichette_web = []
 
 @app.route('/')
 def index():
     """Carica la pagina HTML principale"""
     return render_template('index.html')
+
+@app.route('/api/inventario', methods=['GET'])
+def api_inventario():
+    """Restituisce l'elenco degli alimenti nel database"""
+    alimenti = db.get_tutti_alimenti()
+    lista = [{"nome": row[0].capitalize(), "quantita": row[1]} for row in alimenti]
+    return jsonify({'alimenti': lista})
+
+@app.route('/api/svuota', methods=['POST'])
+def api_svuota():
+    """Svuota completamente il database"""
+    db.svuota_database()
+    return jsonify({'status': 'ok'})
 
 def invia_a_dialogflow(testo):
     """Invia il testo dell'utente a Dialogflow e recupera la risposta dell'Agente"""
@@ -60,13 +79,62 @@ def chat():
     dati = request.get_json()
     messaggio_utente = dati.get('message', '')
     volume_attivo = dati.get('volumeOn', True)
-
+    
+    # 💬 Interroghiamo Dialogflow con il messaggio dell'utente!
     risposta = invia_a_dialogflow(messaggio_utente)
-
+    
+    # Se il volume è attivo nell'interfaccia, facciamo parlare l'assistente in background
     if volume_attivo:
         threading.Thread(target=parla, args=(risposta,)).start()
 
     return jsonify({'reply': risposta})
+
+def genera_frame_live():
+    """Cattura la webcam e trasmette il video in streaming con i rettangoli"""
+    global ultimo_tempo_ia_web, ultime_etichette_web
+    cap = cv2.VideoCapture(0)
+    
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            frame = cv2.resize(frame, (800, 600))
+            
+            # Trova i contorni colorati
+            ritagli = trova_ritagli(frame)
+            tempo_corrente = time.time()
+            
+            # Interroga l'IA 1 volta al secondo per evitare scatti
+            if tempo_corrente - ultimo_tempo_ia_web > 1.0:
+                ultime_etichette_web.clear()
+                for ritaglio_img, box in ritagli:
+                    alimento = riconoscitore.riconosci(ritaglio_img)
+                    if alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70:
+                        ultime_etichette_web.append((box, f"{alimento.nome} ({int(alimento.confidenza)}%)"))
+                ultimo_tempo_ia_web = tempo_corrente
+
+            # Disegna rettangoli e testi
+            for _, (x, y, w, h) in ritagli:
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 100, 0), 2)
+            for (x, y, w, h), etichetta in ultime_etichette_web:
+                cv2.putText(frame, etichetta, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                
+            cv2.putText(frame, "LIVE MODE WEB", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+            
+            # Converte il frame in JPEG per lo streaming HTTP
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame_bytes = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+    finally:
+        cap.release()
+
+@app.route('/video_feed')
+def video_feed():
+    """Rotta che restituisce lo stream video continuo"""
+    return Response(genera_frame_live(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/scansiona', methods=['POST'])
 def scansiona():
@@ -78,6 +146,7 @@ def scansiona():
     if not immagine_b64:
         return jsonify({'message': 'Errore: Nessuna immagine ricevuta dal dispositivo.'})
 
+    # Rimuove l'intestazione "data:image/jpeg;base64," e decodifica l'immagine per OpenCV
     try:
         if ',' in immagine_b64:
             immagine_b64 = immagine_b64.split(',')[1]
@@ -87,66 +156,54 @@ def scansiona():
 
         if frame is None:
             raise ValueError("Immagine non valida")
-
+            
+        # ⚠️ FONDAMENTALE: Rimpiccioliamo l'immagine prima di analizzarla!
+        # Evita che l'IA si blocchi per decine di minuti su foto ad altissima risoluzione.
         frame = cv2.resize(frame, (800, 600))
     except Exception as e:
-        return jsonify({'message': 'Errore nella decodifica dell\'immagine.'})
+        print(f"Errore decodifica immagine: {e}")
+        return jsonify({'message': 'Errore nella decodifica dell\'immagine.'}), 400
 
+    frame_elaborato = frame.copy()
+
+    # 1. Trova i ritagli sull'immagine ricevuta dal telefono
     ritagli = trova_ritagli(frame)
     alimenti_trovati = []
 
-    print(f"\n📸 Foto ricevuta!")
+    print(f"\n📸 Foto ricevuta dal cellulare!")
     print(f"🔎 Trovati {len(ritagli)} potenziali oggetti. Inizio Analisi IA...")
 
-    db.svuota_database()
-
-    for indice, (ritaglio_img, box) in enumerate(ritagli, 1):
-        x, y, w, h = box
+    # 2. Riconosce ogni ritaglio tramite l'IA
+    for indice, (ritaglio_img, (x, y, w, h)) in enumerate(ritagli, 1):
         print(f"🤖 Analisi oggetto {indice}/{len(ritagli)} in corso...")
         alimento = riconoscitore.riconosci(ritaglio_img)
-        riconosciuto = alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70
 
-        if riconosciuto and alimento.nome.lower() == 'uova':
-            sotto_box = conta_uova(ritaglio_img)
-            if sotto_box:
-                for (ux, uy, uw, uh) in sotto_box:
-                    db.aggiungi_alimento(alimento)
-                    alimenti_trovati.append(alimento.nome)
-                    ax, ay = x + ux, y + uy
-                    cv2.rectangle(frame, (ax, ay), (ax + uw, ay + uh), (76, 175, 80), 2)
-                    cv2.putText(frame, "Uovo", (ax + 2, ay - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-            else:
-                db.aggiungi_alimento(alimento)
-                alimenti_trovati.append(alimento.nome)
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (76, 175, 80), 2)
-                cv2.putText(frame, "Uova", (x + 2, y - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            continue
-        elif riconosciuto:
+        # Registriamo l'alimento rilevato nel database (incluso il cartone di uova come oggetto singolo)
+        if alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70:
             db.aggiungi_alimento(alimento)
             alimenti_trovati.append(alimento.nome)
-            etichetta = f"{alimento.nome} {alimento.confidenza:.0f}%"
-            colore = (76, 175, 80)
-        else:
-            etichetta = "non classificato"
-            colore = (158, 158, 158)
+            
+            # Disegniamo il rettangolo e l'etichetta sull'immagine elaborata
+            etichetta = f"{alimento.nome} ({int(alimento.confidenza)}%)"
+            cv2.rectangle(frame_elaborato, (x, y), (x + w, y + h), (0, 255, 0), 3)
+            cv2.putText(frame_elaborato, etichetta, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-        cv2.rectangle(frame, (x, y), (x + w, y + h), colore, 2)
-        (tw, th), _ = cv2.getTextSize(etichetta, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        cv2.rectangle(frame, (x, y - th - 8), (x + tw + 6, y), colore, -1)
-        cv2.putText(frame, etichetta, (x + 3, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-
-    _, buffer = cv2.imencode('.jpg', frame)
-    immagine_annotata = base64.b64encode(buffer).decode('utf-8')
-
+    # 3. Prepara la risposta
     if alimenti_trovati:
         risposta = f"Scansione completata! Ho trovato e salvato: {', '.join(alimenti_trovati)}."
     else:
         risposta = "Scansione terminata. Non ho riconosciuto nulla di noto."
 
+    # 4. Codifichiamo l'immagine con i riquadri per inviarla al frontend
+    _, buffer = cv2.imencode('.jpg', frame_elaborato)
+    img_str = base64.b64encode(buffer).decode('utf-8')
+    immagine_risultato_b64 = f"data:image/jpeg;base64,{img_str}"
+
+    # Fa parlare l'assistente se il volume è attivo
     if volume_attivo:
         threading.Thread(target=parla, args=(risposta,)).start()
 
-    return jsonify({'message': risposta, 'immagine': f"data:image/jpeg;base64,{immagine_annotata}"})
+    return jsonify({'message': risposta, 'processedImage': immagine_risultato_b64})
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -171,15 +228,15 @@ def webhook():
             risposta = "Nessun prodotto in scadenza."
 
     elif intent == 'cosa_posso_cucinare':
-            ingredienti = set(i.lower() for i in db.get_alimenti_per_ricette())
-            suggerimenti = []
-            for combo, ricetta in RICETTE.items():
-                if combo.issubset(ingredienti):
-                    suggerimenti.append(ricetta)
-            if suggerimenti:
-                risposta = f"Puoi preparare: {', '.join(suggerimenti)}."
-            else:
-                risposta = "Non ho ricette per gli ingredienti che hai al momento."
+        ingredienti = set(db.get_alimenti_per_ricette())
+        suggerimenti = []
+        for combo, ricetta in RICETTE.items():
+            if combo.issubset(ingredienti):
+                suggerimenti.append(ricetta)
+        if suggerimenti:
+            risposta = f"Puoi preparare: {', '.join(suggerimenti)}."
+        else:
+            risposta = "Non ho ricette per gli ingredienti che hai al momento."
 
     elif intent == 'ho_consumato_alimento':
         alimento = req['queryResult']['parameters'].get('alimento', '')
@@ -200,9 +257,10 @@ def webhook():
 
     elif intent == 'quando_scade_alimento':
         alimento = req['queryResult']['parameters'].get('alimento', '')
-        risultato = db.get_scadenza_alimento(alimento)
-        if risultato:
-            risposta = f"{risultato[0]} scade il {risultato[1]}."
+        scadenze = db.get_scadenze_vicine()
+        trovato = [row for row in scadenze if row[0].lower() == alimento.lower()]
+        if trovato:
+            risposta = f"{trovato[0][0]} scade il {trovato[0][1]}."
         else:
             risposta = f"Non ho informazioni sulla scadenza di {alimento}."
 

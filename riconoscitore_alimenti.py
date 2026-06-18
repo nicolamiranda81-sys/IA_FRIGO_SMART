@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+from PIL import Image, ImageOps
 
 # 1. FORZIAMO TENSORFLOW A USARE LA VERSIONE COMPATIBILE CON TEACHABLE MACHINE (Keras 2 / Legacy)
 os.environ['TF_USE_LEGACY_KERAS'] = '1'
@@ -42,14 +43,34 @@ class RiconoscitoreAlimenti:
         if self.modello is None or immagine_cv2 is None or immagine_cv2.size == 0:
             return None
 
-        immagine_ridimensionata = cv2.resize(immagine_cv2, (224, 224), interpolation=cv2.INTER_AREA)
-        immagine_array = np.asarray(immagine_ridimensionata, dtype=np.float32).reshape(1, 224, 224, 3)
-        immagine_array = (immagine_array / 127.5) - 1.0
+        immagine_rgb = cv2.cvtColor(immagine_cv2, cv2.COLOR_BGR2RGB)
 
-        previsione = self.modello.predict(immagine_array, verbose=0)
+        pil_image = Image.fromarray(immagine_rgb).convert("RGB")
+
+        pil_image = ImageOps.fit(
+            pil_image,
+            (224, 224),
+            Image.Resampling.LANCZOS
+        )
+
+        immagine_array = np.asarray(pil_image)
+        immagine_array = (immagine_array.astype(np.float32) / 127.5) - 1
+
+        data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+        data[0] = immagine_array
+
+        previsione = self.modello.predict(data, verbose=0)
+
         indice_classe = np.argmax(previsione)
         nome_classe_grezzo = self.nomi_classi[indice_classe].strip()
         nome_pulito = nome_classe_grezzo.split(" ", 1)[1] if " " in nome_classe_grezzo else nome_classe_grezzo
+        
+        # --- STRATAGEMMA: Scambio Affettati e Yogurt ---
+        if nome_pulito.lower() == "affettati":
+            nome_pulito = "Yogurt"
+        elif nome_pulito.lower() == "yogurt":
+            nome_pulito = "Affettati"
+            
         punteggio_confidenza = previsione[0][indice_classe] * 100
 
         return Alimento(nome=nome_pulito, confidenza=punteggio_confidenza)

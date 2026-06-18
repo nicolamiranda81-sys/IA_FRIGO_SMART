@@ -101,6 +101,9 @@
     text-transform:uppercase;
     letter-spacing:0.04em;
     color:var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   .visual-body{
     position:relative;
@@ -142,7 +145,10 @@
   }
   .btn-primary:hover{ background:var(--accent-deep); }
   .btn-ghost{ flex:none; width:100%; }
+  .btn-danger { color: #A6402C; border-color: #E0B3A5; }
+  .btn-danger:hover { background: #fdf2f0; }
   input[type="file"]{ display:none; }
+  
   .chat-body{
     height:330px;
     overflow-y:auto;
@@ -198,12 +204,50 @@
   }
   .vol-btn.is-off{ color:#A6402C; border-color:#E0B3A5; }
   button:focus-visible, input:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-  @media (prefers-reduced-motion: reduce){ .dot{ animation:none; } }
+  
+  /* Stili Inventario */
+  .inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    padding: 16px;
+  }
+  .inventory-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .inventory-item span.nome {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .inventory-item span.quantita {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 6px;
+  }
+  .empty-state {
+    padding: 24px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 14px;
+  }
 </style>
 </head>
 <body>
-<div class="shell">
 
+<div class="shell">
   <section class="hero">
     <div class="hero-text">
       <p class="hero-eyebrow">Assistente anti-spreco</p>
@@ -244,7 +288,6 @@
   </section>
 
   <div class="grid">
-
     <section class="panel">
       <div class="panel-head">Scansione</div>
       <div class="visual-body" id="visualBody">
@@ -275,8 +318,21 @@
         <button class="send-btn" onclick="inviaMessaggio()">Invia</button>
       </div>
     </section>
-
   </div>
+
+  <!-- NUOVA SEZIONE: GESTIONE DISPENSA -->
+  <section class="panel" style="margin-top: 18px;">
+    <div class="panel-head">
+      <span>Il tuo Frigorifero</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn" style="padding: 4px 10px; font-size: 11px; min-width: 0;" onclick="caricaInventario()">🔄 Aggiorna</button>
+        <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px; min-width: 0;" onclick="svuotaFrigo()">🗑️ Svuota Tutto</button>
+      </div>
+    </div>
+    <div id="inventarioContainer" class="empty-state">
+      Clicca su "Aggiorna" per visualizzare gli alimenti salvati nel database.
+    </div>
+  </section>
 </div>
 
 <script>
@@ -299,10 +355,13 @@
       cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       v.srcObject = cameraStream;
     } catch (err) {
-      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Fotocamera</span>Non disponibile. Controlla i permessi del browser e ricarica la pagina.</p>`;
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Fotocamera</span>Non disponibile. Controlla i permessi.</p>`;
     }
   }
-  window.onload = avviaFotocamera;
+  window.onload = () => {
+    avviaFotocamera();
+    caricaInventario(); // Carica inventario all'avvio
+  };
 
   function toggleVolume() {
     volumeOn = !volumeOn;
@@ -351,19 +410,23 @@
       chatBox.innerHTML += `<p class="msg msg-bot"><span class="msg-tag">Assistente</span>${formattaTesto(dati.message)}</p>`;
       chatBox.scrollTop = chatBox.scrollHeight;
 
-      if (dati.immagine) {
-        mostraRisultato(dati.immagine);
+      if (dati.processedImage) {
+        mostraRisultato(dati.processedImage);
       }
       parlaDalTelefono(dati.message);
+      
+      // Aggiorna l'inventario in basso automaticamente dopo la scansione
+      setTimeout(caricaInventario, 1000);
+
     } catch (errore) {
-      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Scansione</span>Non riuscita. Controlla la connessione e riprova.</p>`;
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Scansione</span>Non riuscita. Controlla la connessione.</p>`;
       chatBox.scrollTop = chatBox.scrollHeight;
     }
   }
 
   function mostraRisultato(immagineBase64) {
-    visualBody.innerHTML = `<img src="${immagineBase64}" alt="Risultato scansione con box di rilevamento">`;
-    resetRow.style.display = "block";
+    visualBody.innerHTML = `<img src="${immagineBase64}" alt="Risultato scansione">`;
+    resetRow.style.display = "flex";
   }
 
   function tornaAllaWebcam() {
@@ -375,7 +438,7 @@
   async function eseguiScansione() {
     const v = document.getElementById("videoElement");
     if (!v || !v.videoWidth) {
-      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Scansione</span>Webcam non attiva. Usa "Carica foto" oppure ricarica la pagina.</p>`;
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Scansione</span>Webcam non attiva.</p>`;
       return;
     }
     canvasElement.width = v.videoWidth;
@@ -391,10 +454,52 @@
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
+      visualBody.innerHTML = `<img src="${e.target.result}" style="filter: brightness(0.7);">`;
+      resetRow.style.display = "flex";
       inviaImmagineAlServer(e.target.result);
     };
     reader.readAsDataURL(file);
     event.target.value = "";
+  }
+
+  // --- NUOVE FUNZIONI INVENTARIO ---
+  async function caricaInventario() {
+    const container = document.getElementById("inventarioContainer");
+    try {
+      const res = await fetch('/api/inventario');
+      const data = await res.json();
+      
+      if (data.alimenti && data.alimenti.length > 0) {
+        let html = '<div class="inventory-grid">';
+        data.alimenti.forEach(item => {
+          html += `
+            <div class="inventory-item">
+              <span class="nome">${item.nome}</span>
+              <span class="quantita">Q.tà: ${item.quantita}</span>
+            </div>
+          `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = '<div class="empty-state">Il frigo è vuoto. Fai una scansione per aggiungere alimenti!</div>';
+      }
+    } catch(e) {
+      container.innerHTML = '<div class="empty-state" style="color: #A6402C;">Errore nel caricamento dell\'inventario.</div>';
+    }
+  }
+
+  async function svuotaFrigo() {
+    if (!confirm("Sei sicuro di voler svuotare completamente il frigorifero?")) return;
+    
+    try {
+      await fetch('/api/svuota', { method: 'POST' });
+      chatBox.innerHTML += `<p class="msg msg-bot"><span class="msg-tag">Assistente</span>Ho svuotato il frigorifero come richiesto.</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+      caricaInventario();
+    } catch(e) {
+      alert("Errore durante l'operazione.");
+    }
   }
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -411,18 +516,17 @@
     };
 
     recognition.onerror = function(event) {
-      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Microfono</span>Bloccato (${event.error}). Controlla i permessi del browser.</p>`;
-      chatBox.scrollTop = chatBox.scrollHeight;
+      chatBox.innerHTML += `<p class="msg msg-error"><span class="msg-tag">Microfono</span>Errore: ${event.error}</p>`;
     };
   }
 
   function avviaAscolto() {
     if (recognition) {
-      chatBox.innerHTML += `<p class="msg msg-listening"><span class="dot"></span>In ascolto, parla ora</p>`;
+      chatBox.innerHTML += `<p class="msg msg-listening"><span class="dot"></span>In ascolto...</p>`;
       chatBox.scrollTop = chatBox.scrollHeight;
       recognition.start();
     } else {
-      alert("Il tuo browser non supporta il microfono. Usa Chrome o Safari.");
+      alert("Il tuo browser non supporta il microfono.");
     }
   }
 
