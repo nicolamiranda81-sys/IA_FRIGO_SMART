@@ -2,7 +2,7 @@ class Alimento:
     def __init__(self, nome, confidenza=0.0, data_scadenza=None):
         self.nome = nome
         self.confidenza = confidenza
-        # La data di scadenza è nulla di default, potrà essere aggiornata successivamente
+        # La data di scadenza è nulla di default, verrà aggiornata successivamente
         self.data_scadenza = data_scadenza
 
     def __str__(self):

@@ -1,6 +1,6 @@
 import cv2
 import time
-from rilevatore_Oggetti import trova_ritagli
+from rilevatore_Oggetti import trova_ritagli_con_sottrazione
 
 # Variabili globali per la Modalità Live
 modalita_live = False
@@ -16,12 +16,15 @@ def cam(cap, riconoscitore, db):
         return False
 
     # Rimpiccioliamo leggermente il frame per alleggerire il calcolo
-    frame = cv2.resize(frame, (800, 600))
+    h, w = frame.shape[:2]
+    nuova_larghezza = 800
+    rapporto = nuova_larghezza / w
+    frame = cv2.resize(frame, (nuova_larghezza, int(h * rapporto)))
     
     # --- GESTIONE MODALITÀ LIVE ---
     if modalita_live:
         # 1. Trova i contorni colorati su OGNI fotogramma (veloce, mantiene il video fluido)
-        ritagli = trova_ritagli(frame)
+        ritagli = trova_ritagli_con_sottrazione(frame)
         
         tempo_corrente = time.time()
         # 2. Interroga l'IA (pesante) SOLO 1 volta al secondo per non far scattare il video
@@ -62,7 +65,7 @@ def cam(cap, riconoscitore, db):
         db.svuota_database()
 
         # 1. Chiamiamo il nostro modulo per avere i ritagli
-        ritagli = trova_ritagli(frame)
+        ritagli = trova_ritagli_con_sottrazione(frame)
         print(f"Trovati {len(ritagli)} potenziali oggetti. Inizio Analisi IA...")
         
         # 2. Passiamo ogni ritaglio all'Intelligenza Artificiale

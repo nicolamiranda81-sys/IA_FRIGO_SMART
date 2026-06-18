@@ -69,7 +69,7 @@ class RiconoscitoreAlimenti:
             nome_pulito = "Yogurt"
         elif nome_pulito.lower() == "yogurt":
             nome_pulito = "Affettati"
-
+            
         punteggio_confidenza = previsione[0][indice_classe] * 100
 
         return Alimento(nome=nome_pulito, confidenza=punteggio_confidenza)

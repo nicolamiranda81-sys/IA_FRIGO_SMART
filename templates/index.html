@@ -125,11 +125,16 @@
     aspect-ratio:4/3;
     background:#0E1A1F;
   }
-  .visual-body video,
-  .visual-body img{
+  .visual-body video {
     width:100%;
     height:100%;
     object-fit:cover;
+    display:block;
+  }
+  .visual-body img {
+    width:100%;
+    height:100%;
+    object-fit:contain; /* Mostra la foto per intero senza tagliare i bordi! */
     display:block;
   }
   .actions{
