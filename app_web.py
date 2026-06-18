@@ -7,8 +7,8 @@ import time
 import os
 import uuid
 from flask import Flask, render_template, Response, request, jsonify
-from riconoscitore_vocale import parla
-from rilevatore_Oggetti import trova_ritagli
+from riconoscitore_vocale import parla 
+from rilevatore_Oggetti import trova_ritagli_con_sottrazione
 from riconoscitore_alimenti import RiconoscitoreAlimenti
 from database import Database
 from Alimento import Alimento
@@ -101,10 +101,13 @@ def genera_frame_live():
             if not ret:
                 break
                 
-            frame = cv2.resize(frame, (800, 600))
+            h, w = frame.shape[:2]
+            nuova_larghezza = 800
+            rapporto = nuova_larghezza / w
+            frame = cv2.resize(frame, (nuova_larghezza, int(h * rapporto)))
             
             # Trova i contorni colorati
-            ritagli = trova_ritagli(frame)
+            ritagli = trova_ritagli_con_sottrazione(frame)
             tempo_corrente = time.time()
             
             # Interroga l'IA 1 volta al secondo per evitare scatti
@@ -158,9 +161,12 @@ def scansiona():
         if frame is None:
             raise ValueError("Immagine non valida")
             
-        # ⚠️ FONDAMENTALE: Rimpiccioliamo l'immagine prima di analizzarla!
-        # Evita che l'IA si blocchi per decine di minuti su foto ad altissima risoluzione.
-        frame = cv2.resize(frame, (800, 600))
+        # ⚠️ FONDAMENTALE: Rimpiccioliamo l'immagine mantenendo le proporzioni originali!
+        # Evita che le foto 16:9 dei cellulari vengano deformate compromettendo l'IA.
+        h, w = frame.shape[:2]
+        nuova_larghezza = 800
+        rapporto = nuova_larghezza / w
+        frame = cv2.resize(frame, (nuova_larghezza, int(h * rapporto)))
     except Exception as e:
         print(f"Errore decodifica immagine: {e}")
         return jsonify({'message': 'Errore nella decodifica dell\'immagine.'}), 400
@@ -168,7 +174,7 @@ def scansiona():
     frame_elaborato = frame.copy()
 
     # 1. Trova i ritagli sull'immagine ricevuta dal telefono
-    ritagli = trova_ritagli(frame)
+    ritagli = trova_ritagli_con_sottrazione(frame)
     alimenti_trovati = []
 
     print(f"\n📸 Foto ricevuta dal cellulare!")

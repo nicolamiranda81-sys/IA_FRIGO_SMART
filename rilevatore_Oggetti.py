@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 
 MIN_AREA = 900
 
@@ -26,6 +27,64 @@ def iou(box1, box2):
     return inter_area / union
 
 
+# Carichiamo l'immagine di riferimento una sola volta all'avvio
+try:
+    SFONDO_VUOTO = cv2.imread("base_vuota.jpeg")
+    if SFONDO_VUOTO is None:
+        print("ATTENZIONE: File 'base_vuota.jpeg' non trovato o corrotto. La sottrazione dello sfondo non funzionerà.")
+        print("Esegui lo script 'scattaFotoDIRiferimento.py' per crearlo.")
+except FileNotFoundError:
+    SFONDO_VUOTO = None
+    print("ATTENZIONE: File 'base_vuota.jpeg' non trovato. La sottrazione dello sfondo non funzionerà.")
+    print("Esegui lo script 'scattaFotoDIRiferimento.py' per crearlo.")
+
+def trova_ritagli_con_sottrazione(img):
+    """
+    Metodo molto più robusto che usa la sottrazione dello sfondo.
+    Richiede una foto di riferimento 'base_vuota.jpeg'.
+    """
+    global SFONDO_VUOTO
+    
+    # Se lo sfondo non è ancora caricato, proviamo a cercarlo al volo
+    if SFONDO_VUOTO is None and os.path.exists("base_vuota.jpeg"):
+        SFONDO_VUOTO = cv2.imread("base_vuota.jpeg")
+        
+    if SFONDO_VUOTO is None:
+        # Se non c'è lo sfondo, torniamo al metodo vecchio e meno affidabile
+        return trova_ritagli(img)
+
+    # Ridimensioniamo lo sfondo per farlo combaciare con l'immagine attuale
+    sfondo_ridimensionato = cv2.resize(SFONDO_VUOTO, (img.shape[1], img.shape[0]))
+
+    # --- MIGLIORAMENTO: Riduciamo il rumore video e i riflessi ---
+    # Sfocando leggermente le immagini, ignoriamo il "formicolio" dei pixel
+    # tipico delle webcam in condizioni di scarsa luminosità.
+    img_blur = cv2.GaussianBlur(img, (7, 7), 0)
+    sfondo_blur = cv2.GaussianBlur(sfondo_ridimensionato, (7, 7), 0)
+
+    # 1. Calcola la differenza assoluta tra l'immagine corrente e lo sfondo
+    diff = cv2.absdiff(sfondo_blur, img_blur)
+    
+    # 2. Converti in scala di grigi
+    gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+    
+    # Alziamo la soglia da 25 a 45/50 per ignorare ombre leggere e variazioni di luce
+    _, mask = cv2.threshold(gray, 45, 255, cv2.THRESH_BINARY)
+
+    # Da qui in poi, il codice è identico a prima, ma lavora su una maschera molto più pulita!
+    kernel_close = np.ones((12, 12), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close, iterations=2)
+
+    ritagli = _estrai_da_maschera(img, mask)
+    
+    # Se con la sottrazione non troviamo nulla (es. hai caricato una foto demo della galleria)
+    # usiamo il riconoscimento per colore come piano B!
+    if len(ritagli) == 0:
+        ritagli = trova_ritagli(img)
+        
+    return ritagli
+
+
 def trova_ritagli(img):
     """
     Individua gli alimenti nell'immagine e restituisce:
@@ -49,6 +108,15 @@ def trova_ritagli(img):
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close, iterations=1)
     mask = cv2.dilate(mask, kernel_dilate, iterations=1)
 
+    return _estrai_da_maschera(img, mask)
+
+
+def _estrai_da_maschera(img, mask):
+    """
+    Funzione helper che prende una maschera e restituisce i ritagli.
+    Evita la duplicazione del codice.
+    """
+    H, W = img.shape[:2]
     contours, _ = cv2.findContours(
         mask,
         cv2.RETR_EXTERNAL,
