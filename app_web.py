@@ -15,7 +15,8 @@ from Alimento import Alimento
 
 # --- CONFIGURAZIONE DIALOGFLOW ---
 # Imposta il percorso del file segreto scaricato da Google Cloud
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/dd/Scrivania/PROGETTO_ACADEMY/credenziali.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, "credenziali.json")
 DIALOGFLOW_PROJECT_ID = "frigosmart-ejtr"  # Es: "frigo-smart-abcde"
 DIALOGFLOW_LANGUAGE_CODE = "it"
 SESSION_ID = str(uuid.uuid4()) # Crea una sessione univoca per la memoria dell'utente
