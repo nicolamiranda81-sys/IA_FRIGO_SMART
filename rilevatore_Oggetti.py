@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 
 MIN_AREA = 900
 
@@ -42,6 +43,12 @@ def trova_ritagli_con_sottrazione(img):
     Metodo molto più robusto che usa la sottrazione dello sfondo.
     Richiede una foto di riferimento 'base_vuota.jpeg'.
     """
+    global SFONDO_VUOTO
+    
+    # Se lo sfondo non è ancora caricato, proviamo a cercarlo al volo
+    if SFONDO_VUOTO is None and os.path.exists("base_vuota.jpeg"):
+        SFONDO_VUOTO = cv2.imread("base_vuota.jpeg")
+        
     if SFONDO_VUOTO is None:
         # Se non c'è lo sfondo, torniamo al metodo vecchio e meno affidabile
         return trova_ritagli(img)
@@ -68,7 +75,14 @@ def trova_ritagli_con_sottrazione(img):
     kernel_close = np.ones((12, 12), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close, iterations=2)
 
-    return _estrai_da_maschera(img, mask)
+    ritagli = _estrai_da_maschera(img, mask)
+    
+    # Se con la sottrazione non troviamo nulla (es. hai caricato una foto demo della galleria)
+    # usiamo il riconoscimento per colore come piano B!
+    if len(ritagli) == 0:
+        ritagli = trova_ritagli(img)
+        
+    return ritagli
 
 
 def trova_ritagli(img):
