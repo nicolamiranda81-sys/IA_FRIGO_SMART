@@ -13,11 +13,11 @@ from riconoscitore_alimenti import RiconoscitoreAlimenti
 from database import Database
 from Alimento import Alimento
 
-# --- CONFIGURAZIONE DIALOGFLOW ---
+# CONFIGURAZIONE DIALOGFLOW
 # Imposta il percorso del file segreto scaricato da Google Cloud
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, "credenziali.json")
-DIALOGFLOW_PROJECT_ID = "frigosmart-ejtr"  # Es: "frigo-smart-abcde"
+DIALOGFLOW_PROJECT_ID = "frigosmart-ejtr" 
 DIALOGFLOW_LANGUAGE_CODE = "it"
 SESSION_ID = str(uuid.uuid4()) # Crea una sessione univoca per la memoria dell'utente
 
@@ -80,11 +80,9 @@ def chat():
     dati = request.get_json()
     messaggio_utente = dati.get('message', '')
     volume_attivo = dati.get('volumeOn', True)
-    
-    # 💬 Interroghiamo Dialogflow con il messaggio dell'utente!
+
     risposta = invia_a_dialogflow(messaggio_utente)
     
-    # Se il volume è attivo nell'interfaccia, facciamo parlare l'assistente in background
     if volume_attivo:
         threading.Thread(target=parla, args=(risposta,)).start()
 
@@ -106,7 +104,6 @@ def genera_frame_live():
             rapporto = nuova_larghezza / w
             frame = cv2.resize(frame, (nuova_larghezza, int(h * rapporto)))
             
-            # Trova i contorni colorati
             ritagli = trova_ritagli_con_sottrazione(frame)
             tempo_corrente = time.time()
             
@@ -150,7 +147,6 @@ def scansiona():
     if not immagine_b64:
         return jsonify({'message': 'Errore: Nessuna immagine ricevuta dal dispositivo.'})
 
-    # Rimuove l'intestazione "data:image/jpeg;base64," e decodifica l'immagine per OpenCV
     try:
         if ',' in immagine_b64:
             immagine_b64 = immagine_b64.split(',')[1]
@@ -161,7 +157,6 @@ def scansiona():
         if frame is None:
             raise ValueError("Immagine non valida")
             
-        # ⚠️ FONDAMENTALE: Rimpiccioliamo l'immagine mantenendo le proporzioni originali!
         # Evita che le foto 16:9 dei cellulari vengano deformate compromettendo l'IA.
         h, w = frame.shape[:2]
         nuova_larghezza = 800
@@ -183,12 +178,12 @@ def scansiona():
     # Svuotiamo il database dalle vecchie scansioni prima di inserire i nuovi risultati
     db.svuota_database()
 
-    # 2. Riconosce ogni ritaglio tramite l'IA
+    # Riconosce ogni ritaglio tramite l'IA
     for indice, (ritaglio_img, (x, y, w, h)) in enumerate(ritagli, 1):
         print(f"🤖 Analisi oggetto {indice}/{len(ritagli)} in corso...")
         alimento = riconoscitore.riconosci(ritaglio_img)
 
-        # Registriamo l'alimento rilevato nel database (incluso il cartone di uova come oggetto singolo)
+        # Registriamo l'alimento rilevato nel database 
         if alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70:
             db.aggiungi_alimento(alimento)
             alimenti_trovati.append(alimento.nome)
@@ -198,13 +193,13 @@ def scansiona():
             cv2.rectangle(frame_elaborato, (x, y), (x + w, y + h), (0, 255, 0), 3)
             cv2.putText(frame_elaborato, etichetta, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-    # 3. Prepara la risposta
+    # Prepara la risposta
     if alimenti_trovati:
         risposta = f"Scansione completata! Ho trovato e salvato: {', '.join(alimenti_trovati)}."
     else:
         risposta = "Scansione terminata. Non ho riconosciuto nulla di noto."
 
-    # 4. Codifichiamo l'immagine con i riquadri per inviarla al frontend
+    # Codifichiamo l'immagine con i riquadri per inviarla al frontend
     _, buffer = cv2.imencode('.jpg', frame_elaborato)
     img_str = base64.b64encode(buffer).decode('utf-8')
     immagine_risultato_b64 = f"data:image/jpeg;base64,{img_str}"
@@ -282,7 +277,7 @@ def webhook():
         if ricetta_richiesta:
             # Cerchiamo la ricetta nel nostro dizionario
             for combo, nome_ricetta in RICETTE.items():
-                # Controllo flessibile (se l'utente dice "la frittata" o solo "frittata")
+                # Controllo flessibile
                 if ricetta_richiesta in nome_ricetta.lower() or nome_ricetta.lower() in ricetta_richiesta:
                     ingredienti_necessari = list(combo)
                     nome_ricetta_trovata = nome_ricetta
