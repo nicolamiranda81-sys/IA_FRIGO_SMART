@@ -1,20 +1,26 @@
+import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 import cv2
-from rilevatore_Oggetti import trova_ritagli
+from rilevatore_Oggetti import rileva_oggetti
 from riconoscitore_alimenti import RiconoscitoreAlimenti
-from database import Database
-from cam import cam
 
-riconoscitore = RiconoscitoreAlimenti()
+import numpy as np
+from time import sleep
+ra = RiconoscitoreAlimenti()
 
 
-db = Database()
+image = cv2.imread('realtest.jpeg')
 
-print("Avvio Webcam...")
-cap = cv2.VideoCapture(0)
+cont=0
+for obj in rileva_oggetti(image):
+    cont+=1
+    alimento = ra.riconosci(obj)
+    print(alimento)
+    
 
-while True:
-    if not cam(cap, riconoscitore, db):
-        break
-
-cap.release()
+cv2.imshow('',image)
+cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+
