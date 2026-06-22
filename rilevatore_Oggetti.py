@@ -68,8 +68,8 @@ def rileva_oggetti(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
     #PARAMETRI RICAVATI DAI TESTI PER OTTENERE UN BIANCO REAL
-    bianco_min = np.array([0, 0, 80])
-    bianco_max = np.array([180, 100, 255])
+    bianco_min = np.array([0, 0, 50])
+    bianco_max = np.array([180, 130, 255])
 
     #MI FACCIO LA MASCHERA E OTTENGO I CONTORNI DEGLI OGGETTI INDIVIDUATI
     maschera_sfondo = cv2.inRange(hsv, bianco_min, bianco_max)
@@ -84,7 +84,7 @@ def rileva_oggetti(img):
             continue
         x, y, w, h = cv2.boundingRect(contorno)
         lista_rettangoli.append((x, y, w, h))
-    rif = unisci_rettangoli_vicini(lista_rettangoli)
+    rif = unisci_rettangoli_vicini(lista_rettangoli,2)
     rif = rimuovi_rettangoli_interni(rif)
     #CALCOLO FINALE
     oggetti_rilevati = []
@@ -92,7 +92,7 @@ def rileva_oggetti(img):
         punto_1 =(x,y)
         punto_2 =(x+w,y+h)
         ritaglio = img[y : y+h, x : x+w]
-        oggetti_rilevati.append(ritaglio)
-        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        oggetti_rilevati.append((ritaglio,(x,y,w,h)))
+        #cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
     
     return oggetti_rilevati

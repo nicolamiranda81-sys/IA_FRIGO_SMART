@@ -1,3 +1,5 @@
+import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import cv2
 import threading
 import base64 
@@ -8,10 +10,11 @@ import os
 import uuid
 from flask import Flask, render_template, Response, request, jsonify
 from riconoscitore_vocale import parla 
-from rilevatore_Oggetti import trova_ritagli_con_sottrazione
+from rilevatore_Oggetti import rileva_oggetti
 from riconoscitore_alimenti import RiconoscitoreAlimenti
 from database import Database
 from Alimento import Alimento
+
 
 # CONFIGURAZIONE DIALOGFLOW
 # Imposta il percorso del file segreto scaricato da Google Cloud
@@ -104,7 +107,7 @@ def genera_frame_live():
             rapporto = nuova_larghezza / w
             frame = cv2.resize(frame, (nuova_larghezza, int(h * rapporto)))
             
-            ritagli = trova_ritagli_con_sottrazione(frame)
+            ritagli = rileva_oggetti(frame)
             tempo_corrente = time.time()
             
             # Interroga l'IA 1 volta al secondo per evitare scatti
@@ -169,7 +172,7 @@ def scansiona():
     frame_elaborato = frame.copy()
 
     # 1. Trova i ritagli sull'immagine ricevuta dal telefono
-    ritagli = trova_ritagli_con_sottrazione(frame)
+    ritagli = rileva_oggetti(frame)
     alimenti_trovati = []
 
     print(f"\n📸 Foto ricevuta dal cellulare!")
