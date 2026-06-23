@@ -1,3 +1,4 @@
 # Ignora i database SQLite
 *.db
 __pycache__/credenziali.json
+credenziali.json

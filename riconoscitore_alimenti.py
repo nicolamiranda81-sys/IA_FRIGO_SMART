@@ -1,7 +1,9 @@
 import cv2
 import numpy as np
+import pytesseract
 from tensorflow.keras.models import load_model
 from Alimento import Alimento
+import re
 
 class RiconoscitoreAlimenti:
     def __init__(self):
@@ -20,5 +22,12 @@ class RiconoscitoreAlimenti:
         nome = self.classi[index_win].strip()
         nome = nome[2:]
         sicurezza = predict[0][index_win]*100
-        al = Alimento(nome,sicurezza)
+        text  = pytesseract.image_to_string(immagine_cv2)
+        pattern_data = r"\b(\d{2}[/-]\d{2}[/-]\d{4}|\d{4}[/-]\d{2}[/-]\d{2})\b"
+        date = re.findall(pattern_data,text)
+        al = None
+        if len(date)>0:
+            al = Alimento(nome,sicurezza,date[0])
+        else:
+            al = Alimento(nome,sicurezza)
         return al 
