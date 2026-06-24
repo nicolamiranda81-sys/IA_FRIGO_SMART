@@ -4,15 +4,7 @@ from database import Database
 app = Flask(__name__)
 db = Database()
 
-RICETTE = {
-    frozenset(["uova", "latte"]): "frittata",
-    frozenset(["pomodoro", "mozzarella"]): "insalata caprese",
-    frozenset(["banana", "yogurt"]): "frullato",
-    frozenset(["carota", "lattuga"]): "insalata mista",
-    frozenset(["uova", "burro"]): "uova strapazzate",
-    frozenset(["mela verde", "yogurt"]): "Macedonia con yogurt",
-    frozenset(["carne rossa", "cipolla bianca"]): "spezzatino",
-}
+
 
 @app.route('/webhook', methods=['POST'])
 def webhook():

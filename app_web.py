@@ -29,15 +29,7 @@ app = Flask(__name__)
 riconoscitore = RiconoscitoreAlimenti()
 db = Database()
 
-RICETTE = {
-    frozenset(["uova", "latte"]): "frittata",
-    frozenset(["pomodoro", "mozzarella"]): "insalata caprese",
-    frozenset(["banana", "yogurt"]): "frullato",
-    frozenset(["carota", "lattuga"]): "insalata mista",
-    frozenset(["uova", "burro"]): "uova strapazzate",
-    frozenset(["mela verde", "yogurt"]): "Macedonia con yogurt",
-    frozenset(["carne rossa", "cipolla bianca"]): "spezzatino",
-}
+
 
 # --- VARIABILI GLOBALI PER LIVE MODE WEB ---
 ultimo_tempo_ia_web = 0
@@ -51,9 +43,18 @@ def index():
 @app.route('/api/inventario', methods=['GET'])
 def api_inventario():
     """Restituisce l'elenco degli alimenti nel database"""
-    alimenti = db.get_tutti_alimenti()
-    lista = [{"nome": row[0].capitalize(), "quantita": row[1]} for row in alimenti]
+    conn, cursor = db._get_conn()
+    cursor.execute("SELECT id, nome, data_scadenza FROM alimenti ORDER BY nome")
+    alimenti = cursor.fetchall()
+    conn.close()
+    lista = [{"id": row[0], "nome": row[1].capitalize(), "scadenza": row[2]} for row in alimenti]
     return jsonify({'alimenti': lista})
+
+@app.route('/api/aggiorna_scadenza', methods=['POST'])
+def api_aggiorna_scadenza():
+    dati = request.get_json()
+    db.aggiorna_scadenza_alimento(dati['id'], dati['scadenza'])
+    return jsonify({'status': 'ok'})
 
 @app.route('/api/svuota', methods=['POST'])
 def api_svuota():
@@ -115,7 +116,7 @@ def genera_frame_live():
                 ultime_etichette_web.clear()
                 for ritaglio_img, box in ritagli:
                     alimento = riconoscitore.riconosci(ritaglio_img)
-                    if alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70:
+                    if alimento and alimento.nome.lower() != 'generics/nothing' and alimento.confidenza > 70:
                         ultime_etichette_web.append((box, f"{alimento.nome} ({int(alimento.confidenza)}%)"))
                 ultimo_tempo_ia_web = tempo_corrente
 
@@ -187,7 +188,7 @@ def scansiona():
         alimento = riconoscitore.riconosci(ritaglio_img)
 
         # Registriamo l'alimento rilevato nel database 
-        if alimento and alimento.nome.lower() != 'nothing' and alimento.confidenza > 70:
+        if alimento and alimento.nome.lower() != 'generics/nothing' and alimento.confidenza > 70:
             db.aggiungi_alimento(alimento)
             alimenti_trovati.append(alimento.nome)
             
@@ -238,6 +239,7 @@ def webhook():
     elif intent == 'cosa_posso_cucinare':
         ingredienti = set(db.get_alimenti_per_ricette())
         suggerimenti = []
+        RICETTE = db.get_Ricette()
         for combo, ricetta in RICETTE.items():
             if combo.issubset(ingredienti):
                 suggerimenti.append(ricetta)
@@ -279,6 +281,7 @@ def webhook():
         
         if ricetta_richiesta:
             # Cerchiamo la ricetta nel nostro dizionario
+            RICETTE = db.get_Ricette()
             for combo, nome_ricetta in RICETTE.items():
                 # Controllo flessibile
                 if ricetta_richiesta in nome_ricetta.lower() or nome_ricetta.lower() in ricetta_richiesta:

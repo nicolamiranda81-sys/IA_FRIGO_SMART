@@ -106,6 +106,45 @@ class Database:
         conn.close()
         return risultato
 
+    def aggiorna_scadenza_alimento(self, alimento_id, nuova_data):
+        """Aggiorna la data di scadenza di un singolo alimento dato il suo ID."""
+        conn, cursor = self._get_conn()
+        query = "UPDATE alimenti SET data_scadenza = ? WHERE id = ?"
+        cursor.execute(query, (nuova_data, alimento_id))
+        conn.commit()
+        conn.close()
+        print(f"✅ DB: Aggiornata scadenza per ID {alimento_id} a {nuova_data}")
+
+    def get_Ricette(self):
+        conn, cursor = self._get_conn()
+        cursor.execute("""
+            SELECT r.NOME, ar.NOME_ALIMENTO 
+            FROM ALIMENTI_RICETTA ar
+            JOIN RICETTA r ON r.COD_RICETTA = ar.COD_RICETTA
+        """)
+        
+        table = cursor.fetchall()
+        ricette_temp = {}
+        
+        for row in table:
+            nome_ricetta = row[0]
+            ingrediente = row[1]
+            
+            if nome_ricetta not in ricette_temp:
+                ricette_temp[nome_ricetta] = []
+                
+            ricette_temp[nome_ricetta].append(ingrediente)
+            
+        conn.close()
+        
+        ricette_formato_target = {}
+        
+        for nome_ricetta, lista_ingredienti in ricette_temp.items():
+            chiave_ingredienti = frozenset(lista_ingredienti)
+            ricette_formato_target[chiave_ingredienti] = nome_ricetta
+            
+        return ricette_formato_target
+
 # --- TEST DI FUNZIONAMENTO ---
 if __name__ == "__main__":
     db = Database()

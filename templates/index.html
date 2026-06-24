@@ -359,6 +359,16 @@
     margin-top: 8px;
     box-shadow: 0 3px 8px rgba(30, 95, 99, 0.3);
   }
+  .inventory-item .scadenza {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .inventory-item .scadenza input {
+    border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px;
+    font-family: 'Inter', sans-serif; font-size: 11px; width: 100px;
+    background: var(--bg); color: var(--ink-soft);
+  }
   .fridge-crisper {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -659,10 +669,13 @@
       let html = '<div class="fridge-interior">';
       if (data.alimenti && data.alimenti.length > 0) {
         data.alimenti.forEach(item => {
+          const scadenza = item.scadenza ? item.scadenza.split(' ')[0] : ''; // Prende solo la parte YYYY-MM-DD
           html += `
             <div class="inventory-item">
               <span class="nome">${item.nome}</span>
-              <span class="quantita">Q.tà: ${item.quantita}</span>
+              <div class="scadenza">
+                Scade il: <input type="date" value="${scadenza}" onchange="aggiornaScadenza(${item.id}, this.value)">
+              </div>
             </div>
           `;
         });
@@ -686,6 +699,18 @@
       caricaInventario();
     } catch(e) {
       alert("Errore durante l'operazione.");
+    }
+  }
+
+  async function aggiornaScadenza(id, nuovaScadenza) {
+    try {
+      await fetch('/api/aggiorna_scadenza', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, scadenza: nuovaScadenza })
+      });
+    } catch(e) {
+      alert("Errore durante l'aggiornamento della data di scadenza.");
     }
   }
 
