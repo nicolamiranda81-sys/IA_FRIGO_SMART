@@ -13,7 +13,7 @@ class Database:
         return conn, conn.cursor()
 
     def crea_tabella(self):
-        # Creazione della tabella 'alimenti' se non è già presente
+        
         conn, cursor = self._get_conn()
         query = """
         CREATE TABLE IF NOT EXISTS alimenti (
@@ -29,7 +29,7 @@ class Database:
         conn.close()  
 
     def aggiungi_alimento(self, alimento):
-        # Inserimento delle proprietà dell'oggetto Alimento nel database
+        
         conn, cursor = self._get_conn()
         query = "INSERT INTO alimenti (nome, confidenza, data_scadenza, data_inserimento) VALUES (?, ?, ?, ?)"
         
@@ -40,7 +40,7 @@ class Database:
         cursor.execute(query, valori)
         conn.commit()
         conn.close()      
-        print(f"✅ DB: Salvato '{alimento.nome}' con successo!")
+        
 
     def get_tutti_alimenti(self):
         conn, cursor = self._get_conn()          
@@ -85,7 +85,7 @@ class Database:
         cursor.execute("DELETE FROM alimenti")
         conn.commit()
         conn.close()
-        print("🗑️ DB svuotato: pronto per la nuova scansione")
+        
 
     def get_quantita_alimento(self, nome):
         conn, cursor = self._get_conn()
@@ -113,7 +113,6 @@ class Database:
         cursor.execute(query, (nuova_data, alimento_id))
         conn.commit()
         conn.close()
-        print(f"✅ DB: Aggiornata scadenza per ID {alimento_id} a {nuova_data}")
 
     def get_Ricette(self):
         conn, cursor = self._get_conn()
@@ -145,7 +144,7 @@ class Database:
             
         return ricette_formato_target
 
-# --- TEST DI FUNZIONAMENTO ---
+
 if __name__ == "__main__":
     db = Database()
     test_alimento = Alimento(nome="Banana di Test", confidenza=99.9)

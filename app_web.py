@@ -31,7 +31,7 @@ db = Database()
 
 
 
-# --- VARIABILI GLOBALI PER LIVE MODE WEB ---
+#VARIABILI GLOBALI PER LIVE MODE WEB
 ultimo_tempo_ia_web = 0
 ultime_etichette_web = []
 
@@ -114,8 +114,10 @@ def genera_frame_live():
             # Interroga l'IA 1 volta al secondo per evitare scatti
             if tempo_corrente - ultimo_tempo_ia_web > 1.0:
                 ultime_etichette_web.clear()
+                i=0
                 for ritaglio_img, box in ritagli:
-                    alimento = riconoscitore.riconosci(ritaglio_img)
+                    i+=1
+                    alimento = riconoscitore.riconosci(ritaglio_img,i)
                     if alimento and alimento.nome.lower() != 'generics/nothing' and alimento.confidenza > 70:
                         ultime_etichette_web.append((box, f"{alimento.nome} ({int(alimento.confidenza)}%)"))
                 ultimo_tempo_ia_web = tempo_corrente
@@ -172,7 +174,7 @@ def scansiona():
 
     frame_elaborato = frame.copy()
 
-    # 1. Trova i ritagli sull'immagine ricevuta dal telefono
+    #Trova i ritagli sull'immagine ricevuta dal telefono
     ritagli = rileva_oggetti(frame)
     alimenti_trovati = []
 
@@ -280,7 +282,7 @@ def webhook():
         nome_ricetta_trovata = ""
         
         if ricetta_richiesta:
-            # Cerchiamo la ricetta nel nostro dizionario
+            # Cerchiamo la ricetta
             RICETTE = db.get_Ricette()
             for combo, nome_ricetta in RICETTE.items():
                 # Controllo flessibile
@@ -300,6 +302,4 @@ def webhook():
     return jsonify({"fulfillmentText": risposta})
 
 if __name__ == '__main__':
-    # host='0.0.0.0' permette a qualsiasi dispositivo nella rete Wi-Fi di collegarsi
-    # use_reloader=False impedisce a Flask di creare un doppio processo che blocca la webcam
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
