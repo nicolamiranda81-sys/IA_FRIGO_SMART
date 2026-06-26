@@ -1,4 +1,7 @@
-0 Banana
-1 Mela
-2 Uova
-3 Generics/nothing
+0 Uova
+1 Banana
+2 Pomodoro
+3 Pancetta
+4 Carota
+5 Yogurt
+6 Pasta

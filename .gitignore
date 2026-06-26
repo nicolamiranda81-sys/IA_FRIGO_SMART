@@ -1,4 +1,11 @@
-# Ignora i database SQLite
-*.db
-__pycache__/credenziali.json
+# File di credenziali e configurazioni locali
 credenziali.json
+avvia_ngrok.py
+
+# File generati da Python
+__pycache__/
+*.pyc
+
+# File di database locali
+*.db
+*.sqlite3
