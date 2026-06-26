@@ -30,6 +30,7 @@ class RiconoscitoreAlimenti:
 
     def riconosci(self, immagine_cv2, debug_index=0):
         
+        data_scadenza = None
         gray_image = cv2.cvtColor(immagine_cv2, cv2.COLOR_BGR2GRAY)
 
         
@@ -49,10 +50,11 @@ class RiconoscitoreAlimenti:
             
             config = r'--psm 6 -c tessedit_char_whitelist=0123456789-/. '
             testo = pytesseract.image_to_string(binary, lang='ita', config=config)
-            data_scadenza = self._estrai_e_normalizza_data(testo)
+            data_trovata = self._estrai_e_normalizza_data(testo)
             
-            if data_scadenza:  # appena trova una data valida, si ferma
-                print(f"📅 Data trovata nella regione: '{data_scadenza}'")
+            if data_trovata:  # appena trova una data valida, si ferma
+                data_scadenza = data_trovata
+                print(f"📅 Data trovata nella regione: '{data_trovata}'")
                 break
 
         
@@ -64,47 +66,5 @@ class RiconoscitoreAlimenti:
         index_win = np.argmax(predict)
         nome_alimento = self.classi[index_win].strip().split(" ", 1)[1]
         sicurezza = predict[0][index_win] * 100
-
-        
-        data_scadenza = None
-        try:
-            
-            cv2.imwrite(f"debug_originale_{debug_index}.jpg", immagine_cv2)
-            print(f"📐 Dimensioni immagine ricevuta: {immagine_cv2.shape}")
-
-            gray_image = cv2.cvtColor(immagine_cv2, cv2.COLOR_BGR2GRAY)
-            cv2.imwrite(f"debug_gray_{debug_index}.jpg", gray_image)
-
-            
-            scale = 3
-            h, w = gray_image.shape
-            upscaled = cv2.resize(gray_image, (w * scale, h * scale), interpolation=cv2.INTER_CUBIC)
-            cv2.imwrite(f"debug_upscaled_{debug_index}.jpg", upscaled)
-
-            
-            _, binary = cv2.threshold(upscaled, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-        
-            mean_val = np.mean(binary)
-            print(f"📊 Luminosità media immagine binaria: {mean_val:.1f} (se <127 verrà invertita)")
-            if mean_val < 127:
-                binary = cv2.bitwise_not(binary)
-
-            cv2.imwrite(f"debug_binary_{debug_index}.jpg", binary)
-
-            
-            testo_raw = pytesseract.image_to_string(binary, lang='ita')
-            print(f"🔍 Testo RAW (senza filtri): '{testo_raw.strip()}'")
-
-            
-            config = r'--psm 6 -c tessedit_char_whitelist=0123456789-/. '
-            testo_estratto = pytesseract.image_to_string(binary, lang='ita', config=config)
-            
-
-            data_scadenza = self._estrai_e_normalizza_data(testo_estratto)
-            
-
-        except Exception as e:
-            pass
 
         return Alimento(nome_alimento, sicurezza, data_scadenza)
