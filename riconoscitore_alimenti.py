@@ -1,8 +1,9 @@
+import os
+os.environ['TF_USE_LEGACY_KERAS'] = '1'
+
 import cv2
 import numpy as np
 import pytesseract
-import os
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
 from tensorflow.keras.models import load_model
 from Alimento import Alimento
 import re
