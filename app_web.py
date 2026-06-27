@@ -232,11 +232,20 @@ def webhook():
 
     elif intent == 'cosa_scade_presto':
         scadenze = db.get_scadenze_vicine()
+        scaduti = db.get_alimenti_scaduti() 
+
+        risposta = ""
+
         if scadenze:
-            lista = ", ".join([f"{row[0]} (scade il {row[1]})" for row in scadenze])
-            risposta = f"Questi prodotti scadono presto: {lista}."
+            lista_scadenze = ", ".join([f"{row[0]} (scade il {row[1]})" for row in scadenze])
+            risposta += f"Questi prodotti scadono presto: {lista_scadenze}. "
         else:
-            risposta = "Nessun prodotto in scadenza."
+            risposta += "Non hai nessun prodotto in scadenza a breve. "
+
+        if scaduti:
+            lista_scaduti = ", ".join([f"{row[0]}" for row in scaduti])
+            risposta += f"Fai attenzione però, hai dei prodotti già scaduti: {lista_scaduti}."
+
 
     elif intent == 'cosa_posso_cucinare':
         ingredienti = set(db.get_alimenti_per_ricette())
@@ -257,6 +266,15 @@ def webhook():
             risposta = f"Ho rimosso {alimento} dal frigorifero."
         else:
             risposta = "Non ho capito quale alimento hai consumato."
+
+    elif intent == 'alimenti_scaduti':
+        scaduti = db.get_alimenti_scaduti() 
+        
+        if scaduti:
+            lista_scaduti = ", ".join([f"{row[0]} (scaduto il {row[1]})" for row in scaduti])
+            risposta = f"Attenzione! Hai questi prodotti già scaduti: {lista_scaduti}."
+        else:
+            risposta = "Ottima notizia! Non hai nessun prodotto scaduto nel frigo."
 
     elif intent == 'quanti_ne_ho':
         alimento = req['queryResult']['parameters'].get('alimento', '')
@@ -282,10 +300,8 @@ def webhook():
         nome_ricetta_trovata = ""
         
         if ricetta_richiesta:
-            # Cerchiamo la ricetta
             RICETTE = db.get_Ricette()
             for combo, nome_ricetta in RICETTE.items():
-                # Controllo flessibile
                 if ricetta_richiesta in nome_ricetta.lower() or nome_ricetta.lower() in ricetta_richiesta:
                     ingredienti_necessari = list(combo)
                     nome_ricetta_trovata = nome_ricetta
