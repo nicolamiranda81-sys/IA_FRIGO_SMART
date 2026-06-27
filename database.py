@@ -63,6 +63,22 @@ class Database:
         conn.close()                            
         return risultati
 
+    def get_alimenti_scaduti(self):
+        """Restituisce gli alimenti la cui data di scadenza è precedente a oggi."""
+        conn, cursor = self._get_conn()          
+        oggi = datetime.now().strftime("%Y-%m-%d")
+        
+        cursor.execute("""
+        SELECT nome, data_scadenza FROM alimenti
+        WHERE data_scadenza IS NOT NULL AND data_scadenza != ''
+        AND date(data_scadenza) < date(?)
+        ORDER BY data_scadenza ASC
+        """, (oggi,))
+        
+        risultati = cursor.fetchall()            
+        conn.close()                            
+        return risultati
+
     def get_alimenti_per_ricette(self):
         conn, cursor = self._get_conn()         
         cursor.execute("SELECT DISTINCT nome FROM alimenti")  

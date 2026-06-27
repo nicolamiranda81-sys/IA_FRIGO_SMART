@@ -21,22 +21,43 @@ def webhook():
 
     elif intent == 'cosa_scade_presto':
         scadenze = db.get_scadenze_vicine()
+        scaduti = db.get_alimenti_scaduti() 
+        
+        risposta = ""
+
         if scadenze:
-            lista = ", ".join([f"{row[0]} (scade il {row[1]})" for row in scadenze])
-            risposta = f"Questi prodotti scadono presto: {lista}."
+            lista_scadenze = ", ".join([f"{row[0]} (scade il {row[1]})" for row in scadenze])
+            risposta += f"Questi prodotti scadono presto: {lista_scadenze}. "
         else:
-            risposta = "Nessun prodotto in scadenza."
+            risposta += "Non hai nessun prodotto in scadenza a breve. "
+
+        if scaduti:
+            lista_scaduti = ", ".join([f"{row[0]}" for row in scaduti])
+            risposta += f"⚠️ Fai attenzione però, hai dei prodotti già scaduti da buttare: {lista_scaduti}."
 
     elif intent == 'cosa_posso_cucinare':
-        ingredienti = set(db.get_alimenti_per_ricette())
+        ingrediente_richiesto = req['queryResult']['parameters'].get('alimento', '').lower()
+        
+        ingredienti_disponibili = set(db.get_alimenti_per_ricette())
         suggerimenti = []
+        
         for combo, ricetta in RICETTE.items():
-            if combo.issubset(ingredienti):
+            if ingrediente_richiesto and ingrediente_richiesto not in [i.lower() for i in combo]:
+                continue
+                
+            if combo.issubset(ingredienti_disponibili):
                 suggerimenti.append(ricetta)
+                
         if suggerimenti:
-            risposta = f"Puoi preparare: {', '.join(suggerimenti)}."
+            if ingrediente_richiesto:
+                risposta = f"Con {ingrediente_richiesto} puoi preparare: {', '.join(suggerimenti)}."
+            else:
+                risposta = f"Puoi preparare: {', '.join(suggerimenti)}."
         else:
-            risposta = "Non ho ricette per gli ingredienti che hai al momento."
+            if ingrediente_richiesto:
+                risposta = f"Non hai abbastanza ingredienti per fare una ricetta con {ingrediente_richiesto}."
+            else:
+                risposta = "Non ho ricette per gli ingredienti che hai al momento."
 
     elif intent == 'ho_consumato_alimento':
         alimento = req['queryResult']['parameters'].get('alimento', '')
@@ -70,9 +91,7 @@ def webhook():
         nome_ricetta_trovata = ""
         
         if ricetta_richiesta:
-            # Cerchiamo la ricetta nel nostro dizionario
             for combo, nome_ricetta in RICETTE.items():
-                # Controllo flessibile (se l'utente dice "la frittata" o solo "frittata")
                 if ricetta_richiesta in nome_ricetta.lower() or nome_ricetta.lower() in ricetta_richiesta:
                     ingredienti_necessari = list(combo)
                     nome_ricetta_trovata = nome_ricetta
@@ -82,7 +101,14 @@ def webhook():
             risposta = f"Per preparare {nome_ricetta_trovata} ti servono: {', '.join(ingredienti_necessari)}."
         else:
             risposta = f"Mi dispiace, non conosco gli ingredienti per {ricetta_richiesta if ricetta_richiesta else 'questa ricetta'}."
-
+    elif intent == 'alimenti_scaduti':
+        scaduti = db.get_alimenti_scaduti() 
+        
+        if scaduti:
+            lista = ", ".join([f"{row[0]}" for row in scaduti])
+            risposta = f"Attenzione! Questi prodotti sono già scaduti e andrebbero buttati: {lista}."
+        else:
+            risposta = "Ottima notizia! Non hai nessun prodotto scaduto nel frigo."
     else:
         risposta = "Non ho capito. Puoi chiedermi cosa hai nel frigo, cosa scade o cosa puoi cucinare!"
 
